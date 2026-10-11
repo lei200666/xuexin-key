@@ -571,7 +571,11 @@
         // ==================== Supabase 卡密验证 ====================
         const SUPABASE_URL = 'https://savncntnmafnmobtjrof.supabase.co';
         const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhdm5jbnRubWFmbm1vYnRqcm9mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3MDc5MDMsImV4cCI6MjEwNzI4MzkwM30.fMjmk2MtuzqvcNv3X3vp2eLjydzZ8nmpRrCJiGOSeAw';
-        const HEADERS = {
+        const GET_HEADERS = {
+            'apikey': ANON_KEY,
+            'Authorization': 'Bearer ' + ANON_KEY
+        };
+        const POST_HEADERS = {
             'apikey': ANON_KEY,
             'Authorization': 'Bearer ' + ANON_KEY,
             'Content-Type': 'application/json'
@@ -609,8 +613,9 @@
             try {
                 // 查卡密
                 const res = await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${encodeURIComponent(input)}&select=*`, {
-                    headers: HEADERS
+                    headers: GET_HEADERS
                 });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
                 const data = await res.json();
 
                 if (!data || data.length === 0) {
@@ -648,7 +653,7 @@
                 if (!key.device_id) {
                     await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${encodeURIComponent(input)}`, {
                         method: 'PATCH',
-                        headers: HEADERS,
+                        headers: POST_HEADERS,
                         body: JSON.stringify({
                             device_id: did,
                             activated_at: new Date().toISOString()
@@ -679,8 +684,9 @@
 
             try {
                 const res = await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${encodeURIComponent(savedKey)}&select=*`, {
-                    headers: HEADERS
+                    headers: GET_HEADERS
                 });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
                 const data = await res.json();
                 if (!data || data.length === 0) {
                     localStorage.removeItem('auth_key');
