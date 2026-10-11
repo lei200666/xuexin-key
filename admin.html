@@ -7,7 +7,12 @@
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background:#f5f6fa; padding:20px; }
-.admin-panel { max-width:1000px; margin:0 auto; }
+.login-box { max-width:400px; margin:80px auto; background:#fff; border-radius:12px; padding:32px; box-shadow:0 2px 12px rgba(0,0,0,.08); }
+.login-box h2 { text-align:center; margin-bottom:20px; font-size:20px; }
+.login-box input { width:100%; padding:12px; border:1.5px solid #e0e0e0; border-radius:8px; font-size:15px; margin-bottom:12px; }
+.login-box button { width:100%; padding:12px; background:#26b887; color:#fff; border:none; border-radius:8px; font-size:15px; cursor:pointer; }
+.login-box .err { color:#e74c3c; font-size:13px; text-align:center; }
+.admin-panel { max-width:1000px; margin:0 auto; display:none; }
 .admin-panel h1 { font-size:22px; margin-bottom:20px; }
 .card { background:#fff; border-radius:12px; padding:20px; margin-bottom:16px; box-shadow:0 1px 6px rgba(0,0,0,.06); }
 .card h3 { font-size:16px; margin-bottom:14px; }
@@ -38,7 +43,14 @@ th { color:#999; font-weight:500; white-space:nowrap; }
 </head>
 <body>
 
-<div class="admin-panel">
+<div id="loginView" class="login-box">
+  <h2>卡密管理后台</h2>
+  <input type="password" id="adminPwd" placeholder="请输入管理密码">
+  <button onclick="login()">登录</button>
+  <p class="err" id="loginErr"></p>
+</div>
+
+<div id="adminView" class="admin-panel">
   <h1>卡密管理</h1>
 
   <div class="card">
@@ -72,16 +84,30 @@ th { color:#999; font-weight:500; white-space:nowrap; }
 
 <script>
 const SUPABASE_URL = 'https://savncntnmafnmobtjrof.supabase.co';
-const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhdm5jbnRubWFmbm1vYnRqcm9mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3MDc5MDMsImV4cCI6MjEwNzI4MzkwM30.fMjmk2MtuzqvcNv3X3vp2eLjydzZ8nmpRrCJiGOSeAw';
+// 管理后台用 service_role key（绕过RLS），受密码保护
+const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhdm5jbnRubWFmbm1vYnRqcm9mIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MTcwNzkwMywiZXhwIjoyMTA3MjgzOTAzfQ.s0CJgcLdLRliN-uDcqdMOr1nJ6-sKX25Dks9GSRPVsc';
+const ADMIN_PWD = '200666';
 const GET_HEADERS = {
-  'apikey': ANON_KEY,
-  'Authorization': 'Bearer ' + ANON_KEY
+  'apikey': SERVICE_KEY,
+  'Authorization': 'Bearer ' + SERVICE_KEY
 };
 const POST_HEADERS = {
-  'apikey': ANON_KEY,
-  'Authorization': 'Bearer ' + ANON_KEY,
+  'apikey': SERVICE_KEY,
+  'Authorization': 'Bearer ' + SERVICE_KEY,
   'Content-Type': 'application/json'
 };
+
+function login() {
+  const pwd = document.getElementById('adminPwd').value;
+  if (pwd === ADMIN_PWD) {
+    document.getElementById('loginView').style.display = 'none';
+    document.getElementById('adminView').style.display = 'block';
+    loadKeys();
+  } else {
+    document.getElementById('loginErr').textContent = '密码错误';
+  }
+}
+document.getElementById('adminPwd').addEventListener('keydown', e => { if(e.key==='Enter') login(); });
 
 function genKey() {
   const dur = document.getElementById('durSelect').value;
@@ -206,15 +232,13 @@ function revokeKey(key) {
 }
 
 function reactivateKey(key) {
-  if (!confirm('恢复 ' + key + ' ? 将清除设备绑定和激活时间，可重新使用')) return;
+  if (!confirm('恢复 ' + key + ' ? 将清除设备绑定和激活时间')) return;
   fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${encodeURIComponent(key)}`, {
     method: 'PATCH',
     headers: POST_HEADERS,
     body: JSON.stringify({ is_revoked: false, device_id: null, activated_at: null })
   }).then(() => loadKeys());
 }
-
-loadKeys();
 </script>
 </body>
 </html>
