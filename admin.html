@@ -243,6 +243,7 @@ async function loadKeys() {
       } else {
         actions += `<button class="btn btn-reactivate" onclick="reactivateKey('${k.key}')">恢复</button>`;
       }
+      actions += `<button class="btn" style="background:#7f1d1d;color:#fff;" onclick="deleteKey('${k.key}')">彻底删除</button>`;
       tbody.innerHTML += `<tr>
         <td class="key-text">${k.key}</td>
         <td><span class="dur-text">${durText}</span></td>
@@ -309,6 +310,23 @@ async function reactivateKey(key) {
     body: JSON.stringify({ is_revoked: false, device_id: null, activated_at: null })
   });
   loadKeys();
+}
+
+async function deleteKey(key) {
+  if (!confirm('⚠️ 确定彻底删除 ' + key + ' 吗？\n\n删除后无法恢复！')) return;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${encodeURIComponent(key)}`, {
+      method: 'DELETE',
+      headers: authHeaders()
+    });
+    if (!res.ok) {
+      alert('删除失败：' + await res.text());
+      return;
+    }
+    loadKeys();
+  } catch (e) {
+    alert('网络错误：' + e.message);
+  }
 }
 
 // 页面加载时如果有 token 自动登录
