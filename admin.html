@@ -75,6 +75,31 @@ th { color:#999; font-weight:500; white-space:nowrap; }
     </table>
     </div>
   </div>
+  <div class="card">
+    <h3>学籍内容编辑</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <input id="p_name" placeholder="姓名" style="padding:8px;border:1px solid #e0e0e0;border-radius:6px;">
+      <input id="p_gender" placeholder="性别" style="padding:8px;border:1px solid #e0e0e0;border-radius:6px;">
+      <input id="p_birth" placeholder="出生日期" style="padding:8px;border:1px solid #e0e0e0;border-radius:6px;">
+      <input id="p_school" placeholder="学校名称" style="padding:8px;border:1px solid #e0e0e0;border-radius:6px;">
+      <input id="p_major" placeholder="专业" style="padding:8px;border:1px solid #e0e0e0;border-radius:6px;">
+      <input id="p_nation" placeholder="民族" style="padding:8px;border:1px solid #e0e0e0;border-radius:6px;">
+      <input id="p_id" placeholder="证件号码" style="padding:8px;border:1px solid #e0e0e0;border-radius:6px;">
+      <input id="p_period" placeholder="学制" style="padding:8px;border:1px solid #e0e0e0;border-radius:6px;">
+      <input id="p_etype" placeholder="学历类别" style="padding:8px;border:1px solid #e0e0e0;border-radius:6px;">
+      <input id="p_campus" placeholder="分院" style="padding:8px;border:1px solid #e0e0e0;border-radius:6px;">
+      <input id="p_dept" placeholder="系所" style="padding:8px;border:1px solid #e0e0e0;border-radius:6px;">
+      <input id="p_class" placeholder="班级" style="padding:8px;border:1px solid #e0e0e0;border-radius:6px;">
+      <input id="p_sid" placeholder="学号" style="padding:8px;border:1px solid #e0e0e0;border-radius:6px;">
+      <input id="p_edate" placeholder="入学日期" style="padding:8px;border:1px solid #e0e0e0;border-radius:6px;">
+      <input id="p_status" placeholder="学籍状态" style="padding:8px;border:1px solid #e0e0e0;border-radius:6px;">
+      <input id="p_gdate" placeholder="预计毕业日期" style="padding:8px;border:1px solid #e0e0e0;border-radius:6px;">
+    </div>
+    <div style="margin-top:12px;display:flex;gap:10px;">
+      <button onclick="loadProfile()" style="padding:8px 16px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer;">读取当前内容</button>
+      <button onclick="saveProfile()" style="padding:8px 16px;background:#26b887;color:#fff;border:none;border-radius:6px;cursor:pointer;">保存</button>
+    </div>
+  </div>
 </div>
 <div class="copy-toast" id="copyToast">已复制</div>
 <script>
@@ -291,6 +316,67 @@ if (authToken) {
   document.getElementById('loginView').style.display = 'none';
   document.getElementById('adminView').style.display = 'block';
   loadKeys();
+}
+
+async function loadProfile() {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/student_profile?id=eq.1&select=*`, {
+      headers: authHeaders()
+    });
+    if (!res.ok) { alert('读取失败：' + await res.text()); return; }
+    const data = await res.json();
+    if (!data.length) { alert('无数据'); return; }
+    const p = data[0];
+    document.getElementById('p_name').value = p.name || '';
+    document.getElementById('p_gender').value = p.gender || '';
+    document.getElementById('p_birth').value = p.birth_date || '';
+    document.getElementById('p_school').value = p.school || '';
+    document.getElementById('p_major').value = p.major || '';
+    document.getElementById('p_nation').value = p.nation || '';
+    document.getElementById('p_id').value = p.id_number || '';
+    document.getElementById('p_period').value = p.study_period || '';
+    document.getElementById('p_etype').value = p.education_type || '';
+    document.getElementById('p_campus').value = p.campus || '';
+    document.getElementById('p_dept').value = p.department || '';
+    document.getElementById('p_class').value = p.class_name || '';
+    document.getElementById('p_sid').value = p.student_id || '';
+    document.getElementById('p_edate').value = p.enrollment_date || '';
+    document.getElementById('p_status').value = p.status || '';
+    document.getElementById('p_gdate').value = p.graduation_date || '';
+  } catch (e) {
+    alert('错误：' + e.message);
+  }
+}
+
+async function saveProfile() {
+  const fields = {
+    name: document.getElementById('p_name').value,
+    gender: document.getElementById('p_gender').value,
+    birth_date: document.getElementById('p_birth').value,
+    school: document.getElementById('p_school').value,
+    major: document.getElementById('p_major').value,
+    nation: document.getElementById('p_nation').value,
+    id_number: document.getElementById('p_id').value,
+    study_period: document.getElementById('p_period').value,
+    education_type: document.getElementById('p_etype').value,
+    campus: document.getElementById('p_campus').value,
+    department: document.getElementById('p_dept').value,
+    class_name: document.getElementById('p_class').value,
+    student_id: document.getElementById('p_sid').value,
+    enrollment_date: document.getElementById('p_edate').value,
+    status: document.getElementById('p_status').value,
+    graduation_date: document.getElementById('p_gdate').value
+  };
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/student_profile?id=eq.1`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify(fields)
+    });
+    if (res.ok) { alert('已保存'); } else { alert('保存失败：' + await res.text()); }
+  } catch (e) {
+    alert('网络错误：' + e.message);
+  }
 }
 </script>
 </body>
