@@ -1,0 +1,916 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>高等教育信息</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon/fonts/remixicon.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        topGreen: '#26b887',
+                        cardGreen: '#26b887',
+                        darkGreenTag:'#3F9472',
+                        cardBlue: '#3b82f6',
+                        darkBlueTag: '#2563eb',
+                        txtGray: '#808080',
+                        linkGreen: '#53BC93'
+                    },
+                    fontFamily: {
+                        pingfang: ['PingFang SC', 'sans-serif'],
+                        chsi: ['Chsi', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 1.7.html 原有样式 */
+        .icon-large {
+            font-size:3.1rem;
+            stroke-width:0.2px !important;
+        }
+        .circle-question {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 18px; height: 18px; border-radius: 50%;
+            background-color: transparent; border: 1px solid #808080;
+            color: #808080; font-size: 12px; margin-left: 4px; font-weight: normal;
+        }
+
+        /* 19.0.html 原有样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-box-sizing: border-box;
+        }
+        body {
+            font-family: "Chsi", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.5;
+            -webkit-text-size-adjust: 100% !important;
+            text-size-adjust: 100% !important;
+            overflow-x: hidden;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background-color: #ffffff;
+            border-bottom: 1px solid #f0f0f0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .header-btn {
+            font-size: 22px;
+            color: #666666;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        .header-title {
+            font-size: 18px;
+            font-weight: 500;
+        }
+        .image-code-container {
+            padding: 12px 20px;
+            background-color: #ffffff;
+            position: relative;
+            margin-bottom: 12.6px !important;
+        }
+        .image-code-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 20px;
+            background-color: #ffffff;
+            border-radius: 26px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+        }
+        .image-code-left {
+            display: flex;
+            align-items: center;
+        }
+        .image-code-icon {
+            font-size: 22px;
+            color: #4080ff;
+            margin-right: 12px;
+        }
+        .image-code-text {
+            font-size: 16px;
+        }
+        .arrow-right {
+            color: #999999;
+            font-size: 16px;
+        }
+        .triangle {
+            position: absolute;
+            left: 45px;
+            top: 100%;
+            margin-top: -1px;
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 8px solid #ffffff;
+            filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.03));
+        }
+        .green-card {
+            margin: 0 20px 25.2px 20px;
+            background-color: #26b887;
+            border-radius: 8px;
+            padding: 19px 14px 9px 14px;
+            color: #ffffff;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            height: 198px;
+        }
+        .photo-row {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 24px;
+            gap: 7px;
+        }
+        .photo-item {
+            text-align: center;
+        }
+        .photo-container {
+            width: 50.4px;
+            height: 67.5px;
+            border-radius: 6px;
+            margin-bottom: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .admission-photo {
+            background-color: #ffffff;
+        }
+        .education-photo {
+            background-color: #e6e6e6;
+        }
+        .photo-placeholder {
+            font-size: 21.6px;
+            color: #cccccc;
+        }
+        .education-photo .photo-placeholder {
+            color: #999999;
+        }
+        .photo-label {
+            font-size: 10.0228px;
+            line-height: 15.0342px;
+            opacity: 0.9;
+        }
+        .basic-info {
+            flex: 1;
+            padding-left: 6px;
+            padding-top: 0px;
+            white-space: nowrap;
+        }
+        .name {
+            font-size: 16.0289px;
+            line-height: 24.0434px;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+        .gender-birth {
+            font-size: 12.0123px;
+            line-height: 18.0185px;
+            opacity: 0.9;
+        }
+        .gender {
+            margin-right: 12.0123px;
+        }
+        .school-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+            margin-top: 8px;
+            flex-wrap: nowrap;
+        }
+        .school-name {
+            font-size: 18.0185px;
+            line-height: 25.0382px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .degree-tag {
+            background-color: #209a70;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .major-info {
+            font-size: 13.0258px;
+            line-height: 18.0185px;
+            opacity: 0.95;
+            margin-top: 4px;
+        }
+        .separator {
+            margin: 0 8px;
+        }
+        .info-list {
+            max-width: 380px;
+            width: 88%;
+            margin: 0 auto;
+            font-size: 14.0018px;
+            line-height: 20.008px;
+        }
+        .info-item {
+            display: flex;
+            margin-bottom: 17.44px;
+            align-items: center;
+        }
+        .info-label {
+            width: 120px;
+            color: #999999;
+            text-align: right;
+            margin-right: 20px;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        .info-value {
+            flex: 1;
+            color: #333;
+            white-space: nowrap;
+        }
+        .bottom-btn-container {
+            margin: 24px 20px 24px 20px;
+        }
+        .verify-btn {
+            width: 100%;
+            background-color: #26b887;
+            color: #ffffff;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 16.0289px;
+            line-height: 24.0434px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .editable {
+            border: 1px dashed #cccccc;
+            padding: 2px 4px;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+        .photo-editable {
+            border: 2px dashed #26b887;
+            cursor: pointer;
+        }
+        .file-input {
+            display: none;
+        }
+
+        /* 页面切换样式 */
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+        }
+
+        /* 卡密激活页 */
+        .auth-overlay {
+            position: fixed;
+            inset: 0;
+            background: #f7f7f7;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .auth-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 32px 24px;
+            width: 100%;
+            max-width: 340px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+        }
+        .auth-title {
+            font-size: 20px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        .auth-subtitle {
+            font-size: 13px;
+            color: #999;
+            text-align: center;
+            margin-bottom: 28px;
+        }
+        .auth-input {
+            width: 100%;
+            border: 1.5px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 16px;
+            letter-spacing: 2px;
+            text-align: center;
+            outline: none;
+            box-sizing: border-box;
+            margin-bottom: 16px;
+            transition: border-color 0.2s;
+        }
+        .auth-input:focus {
+            border-color: #26b887;
+        }
+        .auth-btn {
+            width: 100%;
+            background: #26b887;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 13px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .auth-btn:active {
+            opacity: 0.85;
+        }
+        .auth-error {
+            color: #e74c3c;
+            font-size: 13px;
+            text-align: center;
+            margin-top: 12px;
+            display: none;
+        }
+        .auth-logo {
+            width: 56px;
+            height: 56px;
+            background: #26b887;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+        }
+        .auth-logo i {
+            font-size: 28px;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <!-- 卡密激活页 -->
+    <div id="authOverlay" class="auth-overlay">
+        <div class="auth-card">
+            <div class="auth-logo"><i class="ri-shield-check-line"></i></div>
+            <div class="auth-title">高等教育信息</div>
+            <div class="auth-subtitle">请输入激活卡密以继续使用</div>
+            <input type="text" id="authInput" class="auth-input" placeholder="XXXX-XXXX-XXXX" maxlength="19" autocomplete="off">
+            <button class="auth-btn" onclick="verifyKey()">激活</button>
+            <div class="auth-error" id="authError">卡密错误，请重新输入</div>
+        </div>
+    </div>
+
+    <!-- 页面1：高等教育信息（原1.7.html） -->
+    <div id="page1" class="page bg-[#f7f7f7]">
+        <div class="bg-topGreen h-[44px] flex items-center px-4">
+            <i class="ri-arrow-left-s-line text-white" style="font-size:1.55rem; stroke-width:0.2px !important;"></i>
+            <h1 class="flex-1 text-center text-white font-pingfang" style="font-size:16px;line-height:44.0326px;">高等教育信息</h1>
+            <div class="w-[52px]"></div>
+        </div>
+
+        <div class="px-[16px] py-[20px] space-y-[32px]">
+            <div class="mb-[-10px]">
+                <div class="flex justify-between items-center whitespace-nowrap mb-[12px]">
+                    <span class="font-chsi" style="font-size:16.0289px;line-height:40.0535px;">学籍信息 (1)</span>
+                    <span class="font-chsi text-txtGray" style="font-size:12.0123px;line-height:40.0535px;">还有学籍没有显示出来？<a class="text-linkGreen">尝试绑定</a></span>
+                </div>
+                <!-- 点击切换到学籍详情页 -->
+                <button onclick="showPage('page2')" class="bg-cardGreen rounded-xl py-[24px] px-[24px] text-white shadow-sm w-full text-left border-0">
+                    <div class="flex justify-between items-start whitespace-nowrap ml-[-1px]">
+                        <span class="font-chsi" style="font-size:18.0185px;line-height:25.0382px;">安阳学院</span>
+                        <span class="bg-darkGreenTag/60 px-[6px] py-[2px] rounded-full text-white text-xs">专科</span>
+                    </div>
+                    <div id="card1-major" class="mt-[2px] font-chsi ml-[-1px]" style="font-size:13.0258px;line-height:18.0185px;">
+                        音乐表演 <span class="mx-[11px]">|</span> 普通全日制
+                    </div>
+                </button>
+            </div>
+
+            <div>
+                <div class="flex justify-between items-center mb-[8px]">
+                    <span class="font-chsi" style="font-size:16.0289px;line-height:40.0535px;">学历信息 (1)</span>
+                    <span class="font-chsi text-txtGray" style="font-size:12.0123px;line-height:40.0535px;">还有学历没有显示出来？<a class="text-linkGreen">尝试绑定</a></span>
+                </div>
+                <!-- 替换后的蓝色学历卡片 -->
+                <div class="bg-cardBlue rounded-xl py-[24px] px-[24px] text-white shadow-sm w-full text-left">
+                    <div class="flex justify-between items-start whitespace-nowrap ml-[-1px]">
+                        <span class="font-chsi" style="font-size:18.0185px;line-height:25.0382px;">安阳学院</span>
+                        <span class="bg-darkBlueTag/60 px-[6px] py-[2px] rounded-full text-white text-xs">专科</span>
+                    </div>
+                    <div id="card2-major" class="mt-[2px] font-chsi ml-[-1px]" style="font-size:13.0258px;line-height:18.0185px;">
+                        音乐表演 <span class="mx-[11px]">|</span> 普通全日制
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="flex justify-between items-center mb-[-2px]">
+                    <span class="font-chsi" style="font-size:16.0289px;line-height:40.0535px;">学位信息</span>
+                    <span class="font-chsi text-txtGray" style="font-size:12.0123px;line-height:40.0535px;">还有学位没有显示出来？<a class="text-linkGreen">尝试绑定</a></span>
+                </div>
+                <div class="bg-white rounded-xl overflow-hidden shadow-sm">
+                    <div class="py-[10.5px] text-center">
+                        <p class="font-chsi" style="font-size:18.0185px;line-height:25.0382px;">
+                            您还未绑定学位信息，可以使用“尝试<br>
+                            <span class="inline-flex items-center justify-center">绑定学位”功能绑定您的学位 <span class="circle-question">?</span></span>
+                        </p>
+                    </div>
+                    <div class="border-t border-gray-100 py-[14px] text-center">
+                        <a class="inline-flex items-center text-linkGreen font-chsi" style="font-size:14.0018px;line-height:21.0028px;">
+                            提示信息 <i class="ri-arrow-down-s-line ml-[4px]"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <span class="font-chsi block mb-[-2px]" style="font-size:16.0289px;line-height:40.0535px;">考研信息</span>
+                <div class="bg-white rounded-xl p-[10.5px] text-center shadow-sm">
+                    <p class="font-chsi mb-[16px]" style="font-size:18.0185px;line-height:25.0382px;">您没有考研信息！</p>
+                    <p class="text-txtGray font-chsi" style="font-size:13.0258px;line-height:18.0185px;">
+                        您目前没有考研信息，系统提供2006年以来入学的硕<br>士研究生报名和成绩数据。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 页面2：高等学籍详情（原19.0.html） -->
+    <div id="page2" class="page bg-white">
+        <div class="header">
+            <!-- 点击切换回高等教育信息页 -->
+            <button class="header-btn" onclick="showPage('page1')">
+                <i class="fa fa-angle-left"></i>
+            </button>
+            <h1 class="header-title">高等学籍</h1>
+            <button class="header-btn" id="close-btn">
+                <i class="fa fa-times"></i>
+            </button>
+        </div>
+
+        <div class="image-code-container">
+            <div class="image-code-btn">
+                <div class="image-code-left">
+                    <i class="fa fa-picture-o image-code-icon"></i>
+                    <span class="image-code-text">查看图像采集码</span>
+                </div>
+                <i class="fa fa-angle-right arrow-right"></i>
+            </div>
+            <div class="triangle"></div>
+        </div>
+
+        <div class="main-content">
+            <div class="green-card">
+                <div class="photo-row">
+                    <div class="photo-item">
+                        <div id="admission-photo" class="photo-container admission-photo">
+                            <i class="fa fa-user-o photo-placeholder"></i>
+                        </div>
+                        <span class="photo-label">录取照片</span>
+                    </div>
+                    
+                    <div class="photo-item">
+                        <div id="education-photo" class="photo-container education-photo">
+                            <i class="fa fa-user-o photo-placeholder"></i>
+                        </div>
+                        <span class="photo-label">学历照片</span>
+                    </div>
+                    
+                    <div class="basic-info">
+                        <h2 id="name" class="name">张三</h2>
+                        <p id="gender-birth" class="gender-birth"><span class="gender">男</span>2000年01月01日</p>
+                    </div>
+                </div>
+                
+                <div class="school-row">
+                    <h3 id="school" class="school-name">安阳学院</h3>
+                    <span class="degree-tag">专科</span>
+                </div>
+                
+                <p id="major" class="major-info">音乐表演 <span class="separator">|</span> 普通全日制</p>
+            </div>
+
+            <div class="info-list">
+                <div class="info-item">
+                    <span class="info-label">民族</span>
+                    <span id="nation" class="info-value">汉族</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">证件号码</span>
+                    <span id="id-number" class="info-value">110101200001011234</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">学制</span>
+                    <span id="study-period" class="info-value">3年</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">学历类别</span>
+                    <span id="education-type" class="info-value">普通高等教育</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">分院</span>
+                    <span id="campus" class="info-value">安阳校区</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">系所</span>
+                    <span id="department" class="info-value">音乐学院</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">班级</span>
+                    <span id="class-name" class="info-value">2401</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">学号</span>
+                    <span id="student-id" class="info-value">242700001</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">入学日期</span>
+                    <span id="enrollment-date" class="info-value">2024年09月01日</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">学籍状态</span>
+                    <span id="status" class="info-value">在籍（注册学籍）</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">预计毕业日期</span>
+                    <span id="graduation-date" class="info-value">2027年07月01日</span>
+                </div>
+            </div>
+
+            <div class="bottom-btn-container">
+                <button id="verify-btn" class="verify-btn">
+                    查看验证报告
+                </button>
+            </div>
+        </div>
+
+        <input type="file" id="admission-photo-input" accept="image/*" class="file-input">
+        <input type="file" id="education-photo-input" accept="image/*" class="file-input">
+    </div>
+
+    <script>
+        // ==================== Supabase 卡密验证 ====================
+        const SUPABASE_URL = 'https://savncntnmafnmobtjrof.supabase.co';
+        const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhdm5jbnRubWFmbm1vYnRqcm9mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3MDc5MDMsImV4cCI6MjEwNzI4MzkwM30.fMjmk2MtuzqvcNv3X3vp2eLjydzZ8nmpRrCJiGOSeAw';
+        const GET_HEADERS = {
+            'apikey': ANON_KEY,
+            'Authorization': 'Bearer ' + ANON_KEY
+        };
+        const POST_HEADERS = {
+            'apikey': ANON_KEY,
+            'Authorization': 'Bearer ' + ANON_KEY,
+            'Content-Type': 'application/json'
+        };
+
+        // 获取或生成设备唯一ID
+        function getDeviceId() {
+            let did = localStorage.getItem('device_id');
+            if (!did) {
+                did = 'dev_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
+                localStorage.setItem('device_id', did);
+            }
+            return did;
+        }
+
+        function showAuthError(msg) {
+            const err = document.getElementById('authError');
+            err.textContent = msg;
+            err.style.display = 'block';
+        }
+
+        function enterApp() {
+            document.getElementById('authOverlay').style.display = 'none';
+            document.getElementById('page1').classList.add('active');
+        }
+
+        // 验证卡密
+        async function verifyKey() {
+            const input = document.getElementById('authInput').value.trim().toUpperCase();
+            const btn = document.querySelector('.auth-btn');
+            btn.textContent = '验证中...';
+            btn.disabled = true;
+            showAuthError('');
+
+            try {
+                // 查卡密
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${encodeURIComponent(input)}&select=*`, {
+                    headers: GET_HEADERS
+                });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+
+                if (!data || data.length === 0) {
+                    showAuthError('卡密不存在');
+                    return;
+                }
+
+                const key = data[0];
+
+                // 检查是否被停用
+                if (key.is_revoked) {
+                    showAuthError('该卡密已被停用');
+                    return;
+                }
+
+                const did = getDeviceId();
+
+                // 检查设备绑定
+                if (key.device_id && key.device_id !== did) {
+                    showAuthError('该卡密已绑定其他设备');
+                    return;
+                }
+
+                // 检查有效期
+                if (key.duration_hours !== -1 && key.activated_at) {
+                    const activated = new Date(key.activated_at);
+                    const expire = activated.getTime() + key.duration_hours * 3600 * 1000;
+                    if (Date.now() > expire) {
+                        showAuthError('卡密已过期');
+                        return;
+                    }
+                }
+
+                // 如果未激活，绑定设备
+                if (!key.device_id) {
+                    await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${encodeURIComponent(input)}`, {
+                        method: 'PATCH',
+                        headers: POST_HEADERS,
+                        body: JSON.stringify({
+                            device_id: did,
+                            activated_at: new Date().toISOString()
+                        })
+                    });
+                }
+
+                // 验证通过
+                localStorage.setItem('auth_key', input);
+                enterApp();
+            } catch (e) {
+                showAuthError('网络错误，请重试');
+            } finally {
+                btn.textContent = '激活';
+                btn.disabled = false;
+            }
+        }
+
+        // 回车触发
+        document.getElementById('authInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') verifyKey();
+        });
+
+        // 页面加载时检查是否已有有效卡密
+        async function checkExistingAuth() {
+            const savedKey = localStorage.getItem('auth_key');
+            if (!savedKey) return;
+
+            try {
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${encodeURIComponent(savedKey)}&select=*`, {
+                    headers: GET_HEADERS
+                });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                if (!data || data.length === 0) {
+                    localStorage.removeItem('auth_key');
+                    return;
+                }
+                const key = data[0];
+                const did = getDeviceId();
+
+                if (key.is_revoked) {
+                    localStorage.removeItem('auth_key');
+                    showAuthError('卡密已被停用，请重新输入');
+                    return;
+                }
+                if (key.device_id && key.device_id !== did) {
+                    localStorage.removeItem('auth_key');
+                    return;
+                }
+                if (key.duration_hours !== -1 && key.activated_at) {
+                    const expire = new Date(key.activated_at).getTime() + key.duration_hours * 3600 * 1000;
+                    if (Date.now() > expire) {
+                        localStorage.removeItem('auth_key');
+                        showAuthError('卡密已过期，请重新输入');
+                        return;
+                    }
+                }
+                // 有效，直接进入
+                enterApp();
+            } catch (e) {
+                // 网络错误时也放行（离线容错）
+                enterApp();
+            }
+        }
+        checkExistingAuth();
+
+        // 页面切换核心函数
+        function showPage(pageId) {
+            // 隐藏所有页面
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            // 显示目标页面
+            document.getElementById(pageId).classList.add('active');
+            // 自动滚动到页面顶部
+            window.scrollTo(0, 0);
+        }
+
+        // 1.7.html 原有折叠展开功能
+        document.querySelectorAll('a').forEach(el=>{
+            el.onclick=e=>{
+                const arrow=el.querySelector('i');
+                if(!arrow) return;
+                arrow.classList.toggle('ri-arrow-up-s-line');
+                arrow.classList.toggle('ri-arrow-down-s-line');
+            }
+        })
+
+        // 19.0.html 原有编辑功能（连点右上角X按钮5次切换）
+        let clickCount = 0;
+        let clickTimer = null;
+        let isEditable = false;
+        let isLocked = true;
+
+        const editableElements = [
+            'name', 'gender-birth', 'school', 'major',
+            'nation', 'id-number', 'study-period', 'education-type',
+            'campus', 'department', 'class-name', 'student-id',
+            'enrollment-date', 'status', 'graduation-date'
+        ];
+
+        const closeBtn = document.getElementById('close-btn');
+        closeBtn.addEventListener('click', handleBtnClick);
+        closeBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handleBtnClick(e);
+        });
+
+        function handleBtnClick(e) {
+            clearTimeout(clickTimer);
+            clickTimer = setTimeout(() => {
+                clickCount = 0;
+            }, 1500);
+            
+            clickCount++;
+            if (clickCount >= 5) {
+                clickCount = 0;
+                if (isLocked) {
+                    enableEditMode();
+                    alert('已进入编辑模式，可修改所有信息和上传照片');
+                } else {
+                    enableLockMode();
+                    alert('已锁定编辑模式');
+                }
+            }
+        }
+
+        function enableEditMode() {
+            isLocked = false;
+            isEditable = true;
+            
+            editableElements.forEach(id => {
+                const el = document.getElementById(id);
+                el.contentEditable = true;
+                el.classList.add('editable');
+                el.addEventListener('input', saveData);
+            });
+            
+            const admissionPhoto = document.getElementById('admission-photo');
+            const educationPhoto = document.getElementById('education-photo');
+            
+            admissionPhoto.classList.add('photo-editable');
+            educationPhoto.classList.add('photo-editable');
+            admissionPhoto.onclick = () => document.getElementById('admission-photo-input').click();
+            educationPhoto.onclick = () => document.getElementById('education-photo-input').click();
+        }
+
+        function enableLockMode() {
+            isLocked = true;
+            isEditable = false;
+            
+            editableElements.forEach(id => {
+                const el = document.getElementById(id);
+                el.contentEditable = false;
+                el.classList.remove('editable');
+                el.removeEventListener('input', saveData);
+            });
+            
+            const admissionPhoto = document.getElementById('admission-photo');
+            const educationPhoto = document.getElementById('education-photo');
+            
+            admissionPhoto.classList.remove('photo-editable');
+            educationPhoto.classList.remove('photo-editable');
+            admissionPhoto.onclick = null;
+            educationPhoto.onclick = null;
+        }
+
+        // 照片上传功能
+        function handlePhotoUpload(inputId, containerId) {
+            const input = document.getElementById(inputId);
+            const container = document.getElementById(containerId);
+            
+            input.onchange = function () {
+                if (!isEditable || isLocked) return;
+                const file = this.files[0];
+                
+                if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        container.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:6px">`;
+                        saveData();
+                    };
+                    reader.readAsDataURL(file);
+                }
+                this.value = '';
+            };
+        }
+
+        // 本地存储自动保存
+        function saveData() {
+            const data = {
+                text: {},
+                photos: {
+                    admission: document.getElementById('admission-photo').innerHTML,
+                    education: document.getElementById('education-photo').innerHTML
+                }
+            };
+            editableElements.forEach(id => {
+                data.text[id] = document.getElementById(id).innerText;
+            });
+            localStorage.setItem('student_data', JSON.stringify(data));
+        }
+
+        // 页面加载自动恢复数据
+        function loadData() {
+            const data = localStorage.getItem('student_data');
+            if (!data) return;
+            
+            const { text, photos } = JSON.parse(data);
+            editableElements.forEach(id => {
+                document.getElementById(id).innerText = text[id];
+            });
+            
+            document.getElementById('admission-photo').innerHTML = photos.admission;
+            document.getElementById('education-photo').innerHTML = photos.education;
+        }
+
+        // 初始化
+        handlePhotoUpload('admission-photo-input', 'admission-photo');
+        handlePhotoUpload('education-photo-input', 'education-photo');
+        window.addEventListener('DOMContentLoaded', loadData);
+
+        // 移动端缩放限制
+        document.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 1) e.preventDefault();
+        }, { passive: false });
+
+        let lastTouch = 0;
+        document.addEventListener('touchend', (e) => {
+            const now = Date.now();
+            if (now - lastTouch <= 280) e.preventDefault();
+            lastTouch = now;
+        }, { passive: false });
+
+        // ==================== 修复后的专业同步修改功能 ====================
+        function syncMajor() {
+            const majorEl = document.getElementById('major');
+            const card1Major = document.getElementById('card1-major');
+            const card2Major = document.getElementById('card2-major');
+            
+            // 监听详情页专业修改，同步到两个卡片
+            majorEl.addEventListener('input', () => {
+                // 提取纯专业名称（去掉" | 普通全日制"部分）
+                const fullText = majorEl.innerText;
+                const separatorIndex = fullText.indexOf(' | ');
+                const pureMajor = separatorIndex !== -1 ? fullText.substring(0, separatorIndex) : fullText;
+                
+                // 用纯专业名称更新两个卡片，避免重复
+                card1Major.innerHTML = pureMajor + ' <span class="mx-[11px]">|</span> 普通全日制';
+                card2Major.innerHTML = pureMajor + ' <span class="mx-[11px]">|</span> 普通全日制';
+                
+                saveData();
+            });
+        }
+        // 页面加载后启动同步
+        window.addEventListener('DOMContentLoaded', syncMajor);
+    </script>
+</body>
+</html>
