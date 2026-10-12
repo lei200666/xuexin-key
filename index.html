@@ -597,19 +597,9 @@
     </div>
 
     <script>
-        // ==================== Supabase 卡密验证 ====================
+        // ==================== Supabase 卡密验证（走 RPC，前端不再读表） ====================
         const SUPABASE_URL = 'https://savncntnmafnmobtjrof.supabase.co';
         const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhdm5jbnRubWFmbm1vYnRqcm9mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3MDc5MDMsImV4cCI6MjEwNzI4MzkwM30.fMjmk2MtuzqvcNv3X3vp2eLjydzZ8nmpRrCJiGOSeAw';
-        const GET_HEADERS = {
-            'apikey': ANON_KEY,
-            'Authorization': 'Bearer ' + ANON_KEY
-        };
-        const POST_HEADERS = {
-            'apikey': ANON_KEY,
-            'Authorization': 'Bearer ' + ANON_KEY,
-            'Content-Type': 'application/json'
-        };
-
         function getDeviceId() {
             let did = localStorage.getItem('device_id');
             if (!did) {
@@ -618,73 +608,45 @@
             }
             return did;
         }
-
         function showAuthError(msg) {
             const err = document.getElementById('authError');
             err.textContent = msg;
             err.style.display = 'block';
         }
-
         function enterApp() {
             document.getElementById('authOverlay').style.display = 'none';
             document.getElementById('page1').classList.add('active');
         }
-
+        async function callVerifyKey(key) {
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/verify_key`, {
+                method: 'POST',
+                headers: {
+                    'apikey': ANON_KEY,
+                    'Authorization': 'Bearer ' + ANON_KEY,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    p_key: key,
+                    p_device_id: getDeviceId()
+                })
+            });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.json();
+        }
         async function verifyKey() {
             const input = document.getElementById('authInput').value.trim().toUpperCase();
             const btn = document.querySelector('.auth-btn');
             btn.textContent = '验证中...';
             btn.disabled = true;
             showAuthError('');
-
             try {
-                const res = await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${encodeURIComponent(input)}&select=*`, {
-                    headers: GET_HEADERS
-                });
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                const data = await res.json();
-
-                if (!data || data.length === 0) {
-                    showAuthError('卡密不存在');
-                    return;
+                const result = await callVerifyKey(input);
+                if (result && result.ok) {
+                    localStorage.setItem('auth_key', input);
+                    enterApp();
+                } else {
+                    showAuthError((result && result.error) || '卡密错误');
                 }
-
-                const key = data[0];
-
-                if (key.is_revoked) {
-                    showAuthError('该卡密已被停用');
-                    return;
-                }
-
-                const did = getDeviceId();
-
-                if (key.device_id && key.device_id !== did) {
-                    showAuthError('该卡密已绑定其他设备');
-                    return;
-                }
-
-                if (key.duration_hours !== -1 && key.activated_at) {
-                    const activated = new Date(key.activated_at);
-                    const expire = activated.getTime() + key.duration_hours * 3600 * 1000;
-                    if (Date.now() > expire) {
-                        showAuthError('卡密已过期');
-                        return;
-                    }
-                }
-
-                if (!key.device_id) {
-                    await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${encodeURIComponent(input)}`, {
-                        method: 'PATCH',
-                        headers: POST_HEADERS,
-                        body: JSON.stringify({
-                            device_id: did,
-                            activated_at: new Date().toISOString()
-                        })
-                    });
-                }
-
-                localStorage.setItem('auth_key', input);
-                enterApp();
             } catch (e) {
                 showAuthError('网络错误，请重试');
             } finally {
@@ -692,50 +654,21 @@
                 btn.disabled = false;
             }
         }
-
         document.getElementById('authInput').addEventListener('keydown', function(e) {
             if (e.key === 'Enter') verifyKey();
         });
-
-        // 页面加载时检查是否已有有效卡密
         async function checkExistingAuth() {
             const savedKey = localStorage.getItem('auth_key');
             if (!savedKey) return;
-
             try {
-                const res = await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${encodeURIComponent(savedKey)}&select=*`, {
-                    headers: GET_HEADERS
-                });
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                const data = await res.json();
-                if (!data || data.length === 0) {
+                const result = await callVerifyKey(savedKey);
+                if (result && result.ok) {
+                    enterApp();
+                } else {
                     localStorage.removeItem('auth_key');
-                    return;
                 }
-                const key = data[0];
-                const did = getDeviceId();
-
-                if (key.is_revoked) {
-                    localStorage.removeItem('auth_key');
-                    showAuthError('卡密已被停用，请重新输入');
-                    return;
-                }
-                if (key.device_id && key.device_id !== did) {
-                    localStorage.removeItem('auth_key');
-                    return;
-                }
-                if (key.duration_hours !== -1 && key.activated_at) {
-                    const expire = new Date(key.activated_at).getTime() + key.duration_hours * 3600 * 1000;
-                    if (Date.now() > expire) {
-                        localStorage.removeItem('auth_key');
-                        showAuthError('卡密已过期，请重新输入');
-                        return;
-                    }
-                }
-                enterApp();
             } catch (e) {
-                // 网络错误时放行（离线容错）
-                enterApp();
+                localStorage.removeItem('auth_key');
             }
         }
         checkExistingAuth();
