@@ -67,10 +67,12 @@ th { color:#999; font-weight:500; white-space:nowrap; }
     </div>
   </div>
   <div class="card">
-    <h3>卡密列表 (<span id="keyCount">0</span>)</h3>
+    <h3>卡密列表 (<span id="keyCount">0</span>)
+      <button onclick="batchDelete()" style="float:right;padding:6px 14px;background:#7f1d1d;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;">批量删除选中</button>
+    </h3>
     <div style="overflow-x:auto;">
     <table>
-      <thead><tr><th>卡密</th><th>时长</th><th>状态</th><th>剩余</th><th>调时长</th><th>备注</th><th>操作</th></tr></thead>
+      <thead><tr><th><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"></th><th>卡密</th><th>时长</th><th>状态</th><th>剩余</th><th>调时长</th><th>备注</th><th>操作</th></tr></thead>
       <tbody id="keyTable"></tbody>
     </table>
     </div>
@@ -245,6 +247,7 @@ async function loadKeys() {
       }
       actions += `<button class="btn" style="background:#7f1d1d;color:#fff;" onclick="deleteKey('${k.key}')">彻底删除</button>`;
       tbody.innerHTML += `<tr>
+        <td><input type="checkbox" class="key-checkbox" value="${k.key}"></td>
         <td class="key-text">${k.key}</td>
         <td><span class="dur-text">${durText}</span></td>
         <td><span class="badge ${badge}">${status}</span></td>
@@ -321,6 +324,30 @@ async function deleteKey(key) {
     });
     if (!res.ok) {
       alert('删除失败：' + await res.text());
+      return;
+    }
+    loadKeys();
+  } catch (e) {
+    alert('网络错误：' + e.message);
+  }
+}
+
+function toggleSelectAll(checkbox) {
+  document.querySelectorAll('.key-checkbox').forEach(cb => cb.checked = checkbox.checked);
+}
+
+async function batchDelete() {
+  const checked = document.querySelectorAll('.key-checkbox:checked');
+  if (checked.length === 0) { alert('请先勾选要删除的卡密'); return; }
+  if (!confirm('⚠️ 确定彻底删除选中的 ' + checked.length + ' 条卡密吗？\n\n删除后无法恢复！')) return;
+  const keys = Array.from(checked).map(cb => cb.value);
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/keys?key=in.(${keys.map(encodeURIComponent).join(',')})`, {
+      method: 'DELETE',
+      headers: authHeaders()
+    });
+    if (!res.ok) {
+      alert('批量删除失败：' + await res.text());
       return;
     }
     loadKeys();
