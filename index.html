@@ -597,8 +597,18 @@
     </div>
 
     <script>
-        // ==================== 卡密验证（Cloudflare Worker 中间层） ====================
-        const WORKER_URL = 'https://xuexin-key.3202736662.workers.dev';
+        // ==================== Supabase 卡密验证 ====================
+        const SUPABASE_URL = 'https://savncntnmafnmobtjrof.supabase.co';
+        const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhdm5jbnRubWFmbm1vYnRqcm9mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3MDc5MDMsImV4cCI6MjEwNzI4MzkwM30.fMjmk2MtuzqvcNv3X3vp2eLjydzZ8nmpRrCJiGOSeAw';
+        const GET_HEADERS = {
+            'apikey': ANON_KEY,
+            'Authorization': 'Bearer ' + ANON_KEY
+        };
+        const POST_HEADERS = {
+            'apikey': ANON_KEY,
+            'Authorization': 'Bearer ' + ANON_KEY,
+            'Content-Type': 'application/json'
+        };
 
         function getDeviceId() {
             let did = localStorage.getItem('device_id');
@@ -628,21 +638,53 @@
             showAuthError('');
 
             try {
-                const res = await fetch(WORKER_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-device-id': getDeviceId()
-                    },
-                    body: JSON.stringify({ key: input })
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${encodeURIComponent(input)}&select=*`, {
+                    headers: GET_HEADERS
                 });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
                 const data = await res.json();
-                if (data.ok) {
-                    localStorage.setItem('auth_key', input);
-                    enterApp();
-                } else {
-                    showAuthError(data.msg || '验证失败');
+
+                if (!data || data.length === 0) {
+                    showAuthError('卡密不存在');
+                    return;
                 }
+
+                const key = data[0];
+
+                if (key.is_revoked) {
+                    showAuthError('该卡密已被停用');
+                    return;
+                }
+
+                const did = getDeviceId();
+
+                if (key.device_id && key.device_id !== did) {
+                    showAuthError('该卡密已绑定其他设备');
+                    return;
+                }
+
+                if (key.duration_hours !== -1 && key.activated_at) {
+                    const activated = new Date(key.activated_at);
+                    const expire = activated.getTime() + key.duration_hours * 3600 * 1000;
+                    if (Date.now() > expire) {
+                        showAuthError('卡密已过期');
+                        return;
+                    }
+                }
+
+                if (!key.device_id) {
+                    await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${encodeURIComponent(input)}`, {
+                        method: 'PATCH',
+                        headers: POST_HEADERS,
+                        body: JSON.stringify({
+                            device_id: did,
+                            activated_at: new Date().toISOString()
+                        })
+                    });
+                }
+
+                localStorage.setItem('auth_key', input);
+                enterApp();
             } catch (e) {
                 showAuthError('网络错误，请重试');
             } finally {
@@ -661,21 +703,36 @@
             if (!savedKey) return;
 
             try {
-                const res = await fetch(WORKER_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-device-id': getDeviceId()
-                    },
-                    body: JSON.stringify({ key: savedKey })
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${encodeURIComponent(savedKey)}&select=*`, {
+                    headers: GET_HEADERS
                 });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
                 const data = await res.json();
-                if (data.ok) {
-                    enterApp();
-                } else {
+                if (!data || data.length === 0) {
                     localStorage.removeItem('auth_key');
-                    showAuthError(data.msg || '请重新输入卡密');
+                    return;
                 }
+                const key = data[0];
+                const did = getDeviceId();
+
+                if (key.is_revoked) {
+                    localStorage.removeItem('auth_key');
+                    showAuthError('卡密已被停用，请重新输入');
+                    return;
+                }
+                if (key.device_id && key.device_id !== did) {
+                    localStorage.removeItem('auth_key');
+                    return;
+                }
+                if (key.duration_hours !== -1 && key.activated_at) {
+                    const expire = new Date(key.activated_at).getTime() + key.duration_hours * 3600 * 1000;
+                    if (Date.now() > expire) {
+                        localStorage.removeItem('auth_key');
+                        showAuthError('卡密已过期，请重新输入');
+                        return;
+                    }
+                }
+                enterApp();
             } catch (e) {
                 // 网络错误时放行（离线容错）
                 enterApp();
