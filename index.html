@@ -15,8 +15,6 @@
                         topGreen: '#26b887',
                         cardGreen: '#26b887',
                         darkGreenTag:'#3F9472',
-                        cardBlue: '#3b82f6',
-                        darkBlueTag: '#2563eb',
                         txtGray: '#808080',
                         linkGreen: '#53BC93'
                     },
@@ -258,15 +256,44 @@
             cursor: pointer;
         }
         .editable {
-            border: 1px dashed #cccccc;
-            padding: 2px 4px;
+            border: 1px dashed #26b887;
+            padding: 2px 6px;
             border-radius: 4px;
-            background-color: #f9f9f9;
+            background-color: rgba(38, 184, 135, 0.08);
             color: #333;
+            cursor: text;
+        }
+        /* 绿色卡片内的可编辑文字：白色虚线框 */
+        .green-card .editable {
+            border: 1px dashed rgba(255, 255, 255, 0.9);
+            background-color: rgba(255, 255, 255, 0.18);
+            color: #ffffff;
         }
         .photo-editable {
             border: 2px dashed #26b887;
             cursor: pointer;
+        }
+        .photo-delete-btn {
+            position: absolute;
+            top: -7px;
+            right: -7px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #e74c3c;
+            color: #ffffff;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 5;
+            padding: 0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+        }
+        .photo-delete-btn i {
+            font-size: 10px;
+            line-height: 1;
         }
         .file-input {
             display: none;
@@ -279,108 +306,11 @@
         .page.active {
             display: block;
         }
-
-        /* 卡密激活页 */
-        .auth-overlay {
-            position: fixed;
-            inset: 0;
-            background: #f7f7f7;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .auth-card {
-            background: #fff;
-            border-radius: 16px;
-            padding: 32px 24px;
-            width: 100%;
-            max-width: 340px;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-        }
-        .auth-title {
-            font-size: 20px;
-            font-weight: 600;
-            text-align: center;
-            margin-bottom: 8px;
-            color: #333;
-        }
-        .auth-subtitle {
-            font-size: 13px;
-            color: #999;
-            text-align: center;
-            margin-bottom: 28px;
-        }
-        .auth-input {
-            width: 100%;
-            border: 1.5px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 12px 14px;
-            font-size: 16px;
-            letter-spacing: 2px;
-            text-align: center;
-            outline: none;
-            box-sizing: border-box;
-            margin-bottom: 16px;
-            transition: border-color 0.2s;
-        }
-        .auth-input:focus {
-            border-color: #26b887;
-        }
-        .auth-btn {
-            width: 100%;
-            background: #26b887;
-            color: #fff;
-            border: none;
-            border-radius: 10px;
-            padding: 13px;
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-        }
-        .auth-btn:active {
-            opacity: 0.85;
-        }
-        .auth-error {
-            color: #e74c3c;
-            font-size: 13px;
-            text-align: center;
-            margin-top: 12px;
-            display: none;
-        }
-        .auth-logo {
-            width: 56px;
-            height: 56px;
-            background: #26b887;
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 16px;
-        }
-        .auth-logo i {
-            font-size: 28px;
-            color: #fff;
-        }
     </style>
 </head>
 <body>
-    <!-- 卡密激活页 -->
-    <div id="authOverlay" class="auth-overlay">
-        <div class="auth-card">
-            <div class="auth-logo"><i class="ri-shield-check-line"></i></div>
-            <div class="auth-title">高等教育信息</div>
-            <div class="auth-subtitle">请输入激活卡密以继续使用</div>
-            <input type="text" id="authInput" class="auth-input" placeholder="XXXX-XXXX-XXXX" maxlength="19" autocomplete="off">
-            <button class="auth-btn" onclick="verifyKey()">激活</button>
-            <div class="auth-error" id="authError">卡密错误，请重新输入</div>
-        </div>
-    </div>
-
     <!-- 页面1：高等教育信息（原1.7.html） -->
-    <div id="page1" class="page bg-[#f7f7f7]">
+    <div id="page1" class="page active bg-[#f7f7f7]">
         <div class="bg-topGreen h-[44px] flex items-center px-4">
             <i class="ri-arrow-left-s-line text-white" style="font-size:1.55rem; stroke-width:0.2px !important;"></i>
             <h1 class="flex-1 text-center text-white font-pingfang" style="font-size:16px;line-height:44.0326px;">高等教育信息</h1>
@@ -394,12 +324,12 @@
                     <span class="font-chsi text-txtGray" style="font-size:12.0123px;line-height:40.0535px;">还有学籍没有显示出来？<a class="text-linkGreen">尝试绑定</a></span>
                 </div>
                 <!-- 点击切换到学籍详情页 -->
-                <button onclick="showPage('page2')" class="bg-cardGreen rounded-xl py-[24px] px-[24px] text-white shadow-sm w-full text-left border-0">
+                <button onclick="showPage('page2')" class="bg-cardGreen rounded-xl py-[20px] px-[24px] text-white shadow-sm w-full text-left border-0">
                     <div class="flex justify-between items-start whitespace-nowrap ml-[-1px]">
                         <span class="font-chsi" style="font-size:18.0185px;line-height:25.0382px;">安阳学院</span>
                         <span class="bg-darkGreenTag/60 px-[6px] py-[2px] rounded-full text-white text-xs">专科</span>
                     </div>
-                    <div id="card1-major" class="mt-[2px] font-chsi ml-[-1px]" style="font-size:13.0258px;line-height:18.0185px;">
+                    <div id="card1-major" class="mt-[4px] font-chsi ml-[-1px]" style="font-size:13.0258px;line-height:18.0185px;">
                         音乐表演 <span class="mx-[11px]">|</span> 普通全日制
                     </div>
                 </button>
@@ -407,17 +337,19 @@
 
             <div>
                 <div class="flex justify-between items-center mb-[8px]">
-                    <span class="font-chsi" style="font-size:16.0289px;line-height:40.0535px;">学历信息 (1)</span>
+                    <span class="font-chsi" style="font-size:16.0289px;line-height:40.0535px;">学历信息</span>
                     <span class="font-chsi text-txtGray" style="font-size:12.0123px;line-height:40.0535px;">还有学历没有显示出来？<a class="text-linkGreen">尝试绑定</a></span>
                 </div>
-                <!-- 替换后的蓝色学历卡片 -->
-                <div class="bg-cardBlue rounded-xl py-[24px] px-[24px] text-white shadow-sm w-full text-left">
-                    <div class="flex justify-between items-start whitespace-nowrap ml-[-1px]">
-                        <span class="font-chsi" style="font-size:18.0185px;line-height:25.0382px;">安阳学院</span>
-                        <span class="bg-darkBlueTag/60 px-[6px] py-[2px] rounded-full text-white text-xs">专科</span>
+                <div class="bg-white rounded-xl overflow-hidden shadow-sm">
+                    <div class="py-[10.5px] text-center">
+                        <p class="inline-flex items-center font-chsi" style="font-size:18.0185px;line-height:25.0382px;">
+                            没有找到您的学历信息 <span class="circle-question">?</span>
+                        </p>
                     </div>
-                    <div id="card2-major" class="mt-[2px] font-chsi ml-[-1px]" style="font-size:13.0258px;line-height:18.0185px;">
-                        音乐表演 <span class="mx-[11px]">|</span> 普通全日制
+                    <div class="border-t border-gray-100 py-[14px] text-center">
+                        <a class="inline-flex items-center text-linkGreen font-chsi" style="font-size:14.0018px;line-height:21.0028px;">
+                            查看解决办法 <i class="ri-arrow-down-s-line ml-[4px]"></i>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -511,47 +443,47 @@
 
             <div class="info-list">
                 <div class="info-item">
-                    <span class="info-label">民族</span>
+                    <span id="label-nation" class="info-label">民族</span>
                     <span id="nation" class="info-value">汉族</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">证件号码</span>
+                    <span id="label-id-number" class="info-label">证件号码</span>
                     <span id="id-number" class="info-value">110101200001011234</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">学制</span>
+                    <span id="label-study-period" class="info-label">学制</span>
                     <span id="study-period" class="info-value">3年</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">学历类别</span>
+                    <span id="label-education-type" class="info-label">学历类别</span>
                     <span id="education-type" class="info-value">普通高等教育</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">分院</span>
+                    <span id="label-campus" class="info-label">分院</span>
                     <span id="campus" class="info-value">安阳校区</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">系所</span>
+                    <span id="label-department" class="info-label">系所</span>
                     <span id="department" class="info-value">音乐学院</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">班级</span>
+                    <span id="label-class-name" class="info-label">班级</span>
                     <span id="class-name" class="info-value">2401</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">学号</span>
+                    <span id="label-student-id" class="info-label">学号</span>
                     <span id="student-id" class="info-value">242700001</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">入学日期</span>
+                    <span id="label-enrollment-date" class="info-label">入学日期</span>
                     <span id="enrollment-date" class="info-value">2024年09月01日</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">学籍状态</span>
+                    <span id="label-status" class="info-label">学籍状态</span>
                     <span id="status" class="info-value">在籍（注册学籍）</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">预计毕业日期</span>
+                    <span id="label-graduation-date" class="info-label">预计毕业日期</span>
                     <span id="graduation-date" class="info-value">2027年07月01日</span>
                 </div>
             </div>
@@ -568,159 +500,6 @@
     </div>
 
     <script>
-        // ==================== Supabase 卡密验证 ====================
-        const SUPABASE_URL = 'https://savncntnmafnmobtjrof.supabase.co';
-        const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhdm5jbnRubWFmbm1vYnRqcm9mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3MDc5MDMsImV4cCI6MjEwNzI4MzkwM30.fMjmk2MtuzqvcNv3X3vp2eLjydzZ8nmpRrCJiGOSeAw';
-        const GET_HEADERS = {
-            'apikey': ANON_KEY,
-            'Authorization': 'Bearer ' + ANON_KEY
-        };
-        const POST_HEADERS = {
-            'apikey': ANON_KEY,
-            'Authorization': 'Bearer ' + ANON_KEY,
-            'Content-Type': 'application/json'
-        };
-
-        // 获取或生成设备唯一ID
-        function getDeviceId() {
-            let did = localStorage.getItem('device_id');
-            if (!did) {
-                did = 'dev_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
-                localStorage.setItem('device_id', did);
-            }
-            return did;
-        }
-
-        function showAuthError(msg) {
-            const err = document.getElementById('authError');
-            err.textContent = msg;
-            err.style.display = 'block';
-        }
-
-        function enterApp() {
-            document.getElementById('authOverlay').style.display = 'none';
-            document.getElementById('page1').classList.add('active');
-        }
-
-        // 验证卡密
-        async function verifyKey() {
-            const input = document.getElementById('authInput').value.trim().toUpperCase();
-            const btn = document.querySelector('.auth-btn');
-            btn.textContent = '验证中...';
-            btn.disabled = true;
-            showAuthError('');
-
-            try {
-                // 查卡密
-                const res = await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${encodeURIComponent(input)}&select=*`, {
-                    headers: GET_HEADERS
-                });
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                const data = await res.json();
-
-                if (!data || data.length === 0) {
-                    showAuthError('卡密不存在');
-                    return;
-                }
-
-                const key = data[0];
-
-                // 检查是否被停用
-                if (key.is_revoked) {
-                    showAuthError('该卡密已被停用');
-                    return;
-                }
-
-                const did = getDeviceId();
-
-                // 检查设备绑定
-                if (key.device_id && key.device_id !== did) {
-                    showAuthError('该卡密已绑定其他设备');
-                    return;
-                }
-
-                // 检查有效期
-                if (key.duration_hours !== -1 && key.activated_at) {
-                    const activated = new Date(key.activated_at);
-                    const expire = activated.getTime() + key.duration_hours * 3600 * 1000;
-                    if (Date.now() > expire) {
-                        showAuthError('卡密已过期');
-                        return;
-                    }
-                }
-
-                // 如果未激活，绑定设备
-                if (!key.device_id) {
-                    await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${encodeURIComponent(input)}`, {
-                        method: 'PATCH',
-                        headers: POST_HEADERS,
-                        body: JSON.stringify({
-                            device_id: did,
-                            activated_at: new Date().toISOString()
-                        })
-                    });
-                }
-
-                // 验证通过
-                localStorage.setItem('auth_key', input);
-                enterApp();
-            } catch (e) {
-                showAuthError('网络错误，请重试');
-            } finally {
-                btn.textContent = '激活';
-                btn.disabled = false;
-            }
-        }
-
-        // 回车触发
-        document.getElementById('authInput').addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') verifyKey();
-        });
-
-        // 页面加载时检查是否已有有效卡密
-        async function checkExistingAuth() {
-            const savedKey = localStorage.getItem('auth_key');
-            if (!savedKey) return;
-
-            try {
-                const res = await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${encodeURIComponent(savedKey)}&select=*`, {
-                    headers: GET_HEADERS
-                });
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                const data = await res.json();
-                if (!data || data.length === 0) {
-                    localStorage.removeItem('auth_key');
-                    return;
-                }
-                const key = data[0];
-                const did = getDeviceId();
-
-                if (key.is_revoked) {
-                    localStorage.removeItem('auth_key');
-                    showAuthError('卡密已被停用，请重新输入');
-                    return;
-                }
-                if (key.device_id && key.device_id !== did) {
-                    localStorage.removeItem('auth_key');
-                    return;
-                }
-                if (key.duration_hours !== -1 && key.activated_at) {
-                    const expire = new Date(key.activated_at).getTime() + key.duration_hours * 3600 * 1000;
-                    if (Date.now() > expire) {
-                        localStorage.removeItem('auth_key');
-                        showAuthError('卡密已过期，请重新输入');
-                        return;
-                    }
-                }
-                // 有效，直接进入
-                enterApp();
-            } catch (e) {
-                // 网络错误时也放行（离线容错）
-                enterApp();
-            }
-        }
-        checkExistingAuth();
-
         // 页面切换核心函数
         function showPage(pageId) {
             // 隐藏所有页面
@@ -753,7 +532,12 @@
             'name', 'gender-birth', 'school', 'major',
             'nation', 'id-number', 'study-period', 'education-type',
             'campus', 'department', 'class-name', 'student-id',
-            'enrollment-date', 'status', 'graduation-date'
+            'enrollment-date', 'status', 'graduation-date',
+            // 左侧标签也可编辑
+            'label-nation', 'label-id-number', 'label-study-period',
+            'label-education-type', 'label-campus', 'label-department',
+            'label-class-name', 'label-student-id', 'label-enrollment-date',
+            'label-status', 'label-graduation-date'
         ];
 
         const closeBtn = document.getElementById('close-btn');
@@ -785,56 +569,66 @@
         function enableEditMode() {
             isLocked = false;
             isEditable = true;
-            
+
             editableElements.forEach(id => {
                 const el = document.getElementById(id);
+                if (!el) return;
                 el.contentEditable = true;
                 el.classList.add('editable');
                 el.addEventListener('input', saveData);
             });
-            
+
             const admissionPhoto = document.getElementById('admission-photo');
             const educationPhoto = document.getElementById('education-photo');
-            
+
             admissionPhoto.classList.add('photo-editable');
             educationPhoto.classList.add('photo-editable');
             admissionPhoto.onclick = () => document.getElementById('admission-photo-input').click();
             educationPhoto.onclick = () => document.getElementById('education-photo-input').click();
+            // 已上传的照片出现删除按钮
+            addDeleteBtnToPhoto('admission-photo');
+            addDeleteBtnToPhoto('education-photo');
         }
 
         function enableLockMode() {
             isLocked = true;
             isEditable = false;
-            
+
             editableElements.forEach(id => {
                 const el = document.getElementById(id);
+                if (!el) return;
                 el.contentEditable = false;
                 el.classList.remove('editable');
                 el.removeEventListener('input', saveData);
             });
-            
+
             const admissionPhoto = document.getElementById('admission-photo');
             const educationPhoto = document.getElementById('education-photo');
-            
+
             admissionPhoto.classList.remove('photo-editable');
             educationPhoto.classList.remove('photo-editable');
             admissionPhoto.onclick = null;
             educationPhoto.onclick = null;
+            // 退出编辑模式时移除删除按钮
+            removeDeleteBtnFromPhoto('admission-photo');
+            removeDeleteBtnFromPhoto('education-photo');
         }
 
         // 照片上传功能
         function handlePhotoUpload(inputId, containerId) {
             const input = document.getElementById(inputId);
             const container = document.getElementById(containerId);
-            
+
             input.onchange = function () {
                 if (!isEditable || isLocked) return;
                 const file = this.files[0];
-                
+
                 if (file && file.type.startsWith('image/')) {
                     const reader = new FileReader();
                     reader.onload = (e) => {
                         container.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:6px">`;
+                        // 新上传的照片立即出现删除按钮
+                        addDeleteBtnToPhoto(containerId);
                         saveData();
                     };
                     reader.readAsDataURL(file);
@@ -843,17 +637,54 @@
             };
         }
 
+        // 给已上传的照片添加右上角红色删除按钮
+        function addDeleteBtnToPhoto(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            if (!container.querySelector('img')) return;
+            if (container.querySelector('.photo-delete-btn')) return;
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'photo-delete-btn';
+            btn.innerHTML = '<i class="fa fa-close"></i>';
+            btn.onclick = function (e) {
+                e.stopPropagation();
+                container.innerHTML = '<i class="fa fa-user-o photo-placeholder"></i>';
+                saveData();
+            };
+            container.appendChild(btn);
+        }
+
+        // 移除照片上的删除按钮
+        function removeDeleteBtnFromPhoto(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const btn = container.querySelector('.photo-delete-btn');
+            if (btn) btn.remove();
+        }
+
+        // 取照片容器 innerHTML，剥掉删除按钮（防止按钮被存进 localStorage）
+        function getPhotoHtmlWithoutBtn(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return '';
+            const clone = container.cloneNode(true);
+            const btn = clone.querySelector('.photo-delete-btn');
+            if (btn) btn.remove();
+            return clone.innerHTML;
+        }
+
         // 本地存储自动保存
         function saveData() {
             const data = {
                 text: {},
                 photos: {
-                    admission: document.getElementById('admission-photo').innerHTML,
-                    education: document.getElementById('education-photo').innerHTML
+                    admission: getPhotoHtmlWithoutBtn('admission-photo'),
+                    education: getPhotoHtmlWithoutBtn('education-photo')
                 }
             };
             editableElements.forEach(id => {
-                data.text[id] = document.getElementById(id).innerText;
+                const el = document.getElementById(id);
+                if (el) data.text[id] = el.innerText;
             });
             localStorage.setItem('student_data', JSON.stringify(data));
         }
@@ -862,14 +693,22 @@
         function loadData() {
             const data = localStorage.getItem('student_data');
             if (!data) return;
-            
+
             const { text, photos } = JSON.parse(data);
             editableElements.forEach(id => {
-                document.getElementById(id).innerText = text[id];
+                const el = document.getElementById(id);
+                if (el && text[id] !== undefined) el.innerText = text[id];
             });
-            
+
             document.getElementById('admission-photo').innerHTML = photos.admission;
             document.getElementById('education-photo').innerHTML = photos.education;
+
+            // 兜底：旧数据里可能残留删除按钮，恢复后立即清除
+            removeDeleteBtnFromPhoto('admission-photo');
+            removeDeleteBtnFromPhoto('education-photo');
+
+            // 恢复专业后同步到列表页卡片
+            applyMajorToCards();
         }
 
         // 初始化
@@ -889,27 +728,24 @@
             lastTouch = now;
         }, { passive: false });
 
-        // ==================== 修复后的专业同步修改功能 ====================
-        function syncMajor() {
+        // ==================== 专业同步修改功能 ====================
+        function applyMajorToCards() {
             const majorEl = document.getElementById('major');
             const card1Major = document.getElementById('card1-major');
-            const card2Major = document.getElementById('card2-major');
-            
-            // 监听详情页专业修改，同步到两个卡片
+            if (!majorEl || !card1Major) return;
+            const fullText = majorEl.innerText;
+            const separatorIndex = fullText.indexOf(' | ');
+            const pureMajor = separatorIndex !== -1 ? fullText.substring(0, separatorIndex) : fullText;
+            card1Major.innerHTML = pureMajor + ' <span class="mx-[11px]">|</span> 普通全日制';
+        }
+
+        function syncMajor() {
+            const majorEl = document.getElementById('major');
             majorEl.addEventListener('input', () => {
-                // 提取纯专业名称（去掉" | 普通全日制"部分）
-                const fullText = majorEl.innerText;
-                const separatorIndex = fullText.indexOf(' | ');
-                const pureMajor = separatorIndex !== -1 ? fullText.substring(0, separatorIndex) : fullText;
-                
-                // 用纯专业名称更新两个卡片，避免重复
-                card1Major.innerHTML = pureMajor + ' <span class="mx-[11px]">|</span> 普通全日制';
-                card2Major.innerHTML = pureMajor + ' <span class="mx-[11px]">|</span> 普通全日制';
-                
+                applyMajorToCards();
                 saveData();
             });
         }
-        // 页面加载后启动同步
         window.addEventListener('DOMContentLoaded', syncMajor);
     </script>
 </body>
