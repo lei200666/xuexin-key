@@ -769,7 +769,7 @@
         let isLocked = true;
 
         const editableElements = [
-            'name', 'gender-birth', 'school', 'major', 'major-name',
+            'name', 'gender-birth', 'school', 'major-name',
             'nation', 'id-number', 'study-period', 'education-type',
             'campus', 'department', 'class-name', 'student-id',
             'enrollment-date', 'status', 'graduation-date',
@@ -970,18 +970,27 @@
 
         // ==================== 专业同步修改功能 ====================
         function applyMajorToCards() {
-            const majorNameEl = document.getElementById('major-name');
+            const majorEl = document.getElementById('major');
             const card1Major = document.getElementById('card1-major');
-            if (!majorNameEl || !card1Major) return;
-            // 直接从独立的专业名 span 取，不受 contentEditable 破坏结构影响
-            const pureMajor = majorNameEl.innerText.trim();
+            if (!majorEl || !card1Major) return;
+            let pureMajor;
+            // 优先从独立的 major-name span 取
+            const majorNameEl = document.getElementById('major-name');
+            if (majorNameEl) {
+                pureMajor = majorNameEl.innerText.trim();
+            } else {
+                // 兜底：从整行提取第一个 " | " 前面的部分
+                const fullText = majorEl.innerText;
+                const idx = fullText.indexOf(' | ');
+                pureMajor = idx !== -1 ? fullText.substring(0, idx) : fullText;
+            }
             card1Major.innerHTML = pureMajor + ' <span class="mx-[11px]">|</span> 普通全日制';
         }
 
         function syncMajor() {
-            const majorNameEl = document.getElementById('major-name');
-            if (!majorNameEl) return;
-            majorNameEl.addEventListener('input', () => {
+            const majorEl = document.getElementById('major');
+            if (!majorEl) return;
+            majorEl.addEventListener('input', () => {
                 applyMajorToCards();
                 saveData();
             });
