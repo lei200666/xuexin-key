@@ -596,8 +596,9 @@
     </div>
 
     <script>
-        // ==================== 阿里云 FC 卡密验证 ====================
-        const API = 'https://xuexin-web-nhjqyrudaq.cn-hangzhou.fcapp.run';
+        // ==================== Supabase 卡密验证（走 RPC，前端不再读表） ====================
+        const SUPABASE_URL = 'https://savncntnmafnmobtjrof.supabase.co';
+        const ANON_KEY = 'sb_publishable_CMzCiPcroD6adrPXX3lpVg_4om-1PUi';
         function getDeviceId() {
             let did = localStorage.getItem('device_id');
             if (!did) {
@@ -617,9 +618,11 @@
         }
         async function callVerifyKey(key, retryCount = 0) {
             try {
-                const res = await fetch(`${API}/verify`, {
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/verify_key`, {
                     method: 'POST',
                     headers: {
+                        'apikey': ANON_KEY,
+                        'Authorization': 'Bearer ' + ANON_KEY,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
