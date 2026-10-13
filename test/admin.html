@@ -105,42 +105,35 @@ th { color:#999; font-weight:500; white-space:nowrap; }
 </div>
 <div class="copy-toast" id="copyToast">已复制</div>
 <script>
-const SUPABASE_URL = 'https://savncntnmafnmobtjrof.supabase.co';
-const ANON_KEY = 'sb_publishable_CMzCiPcroD6adrPXX3lpVg_4om-1PUi';
+const API = 'https://xuexin-web-nhjqyrudaq.cn-hangzhou.fcapp.run';
 let authToken = localStorage.getItem('admin_token') || '';
-let authEmail = localStorage.getItem('admin_email') || '';
 
 function authHeaders() {
   return {
-    'apikey': ANON_KEY,
     'Authorization': 'Bearer ' + authToken,
     'Content-Type': 'application/json'
   };
 }
 
 async function login() {
-  const email = document.getElementById('adminEmail').value.trim();
   const pwd = document.getElementById('adminPwd').value;
   const errEl = document.getElementById('loginErr');
   errEl.textContent = '';
   try {
-    const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    const res = await fetch(`${API}/admin/login`, {
       method: 'POST',
       headers: {
-        'apikey': ANON_KEY,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ email, password: pwd })
+      body: JSON.stringify({ password: pwd })
     });
     const data = await res.json();
-    if (!res.ok) {
-      errEl.textContent = '登录失败：' + (data.error_description || data.msg || '账号或密码错误');
+    if (!res.ok || !data.ok) {
+      errEl.textContent = '登录失败：' + (data.error || '密码错误');
       return;
     }
-    authToken = data.access_token;
-    authEmail = email;
+    authToken = data.token;
     localStorage.setItem('admin_token', authToken);
-    localStorage.setItem('admin_email', authEmail);
     document.getElementById('loginView').style.display = 'none';
     document.getElementById('adminView').style.display = 'block';
     loadKeys();
@@ -160,26 +153,18 @@ document.getElementById('adminEmail').addEventListener('keydown', e => { if(e.ke
 
 async function genKey() {
   const dur = parseInt(document.getElementById('durSelect').value);
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  const arr = new Uint32Array(12);
-  crypto.getRandomValues(arr);
-  let k = '';
-  for (let i = 0; i < 12; i++) {
-    if (i > 0 && i % 4 === 0) k += '-';
-    k += chars[arr[i] % chars.length];
-  }
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/keys`, {
+    const res = await fetch(`${API}/admin/keys`, {
       method: 'POST',
       headers: authHeaders(),
-      body: JSON.stringify({ key: k, duration_hours: dur })
+      body: JSON.stringify({ duration_hours: dur })
     });
-    if (!res.ok) {
-      const err = await res.text();
-      alert('生成失败：' + err);
+    const data = await res.json();
+    if (!res.ok || !data.ok) {
+      alert('生成失败：' + (data.error || '未知错误'));
       return;
     }
-    document.getElementById('genResult').textContent = '已生成: ' + k;
+    document.getElementById('genResult').textContent = '已生成: ' + data.key;
     loadKeys();
   } catch (e) {
     alert('网络错误：' + e.message);
@@ -204,19 +189,19 @@ function copyKey(key) {
 
 async function loadKeys() {
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/keys?select=*&order=created_at.desc`, {
+    const res = await fetch(`${API}/admin/keys`, {
       headers: authHeaders()
     });
-    if (!res.ok) {
-      const err = await res.text();
-      alert('加载失败：' + err);
+    const data = await res.json();
+    if (!res.ok || !data.ok) {
+      alert('加载失败：' + (data.error || '未知错误'));
       return;
     }
-    const data = await res.json();
-    document.getElementById('keyCount').textContent = data.length;
+    const keys = data.keys || [];
+    document.getElementById('keyCount').textContent = keys.length;
     const tbody = document.getElementById('keyTable');
     tbody.innerHTML = '';
-    data.forEach(k => {
+    keys.forEach(k => {
       let status, badge, remaining = '-';
       if (k.is_revoked) { status = '已停用'; badge = 'badge-revoked'; }
       else if (!k.device_id) { status = '未使用'; badge = 'badge-unused'; }
@@ -268,14 +253,17 @@ async function adjustDur(key, op) {
   if (!hours || hours <= 0) { alert('请输入小时数'); return; }
   const delta = op === 'add' ? hours : -hours;
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${encodeURIComponent(key)}&select=duration_hours`, {
+    // 先获取当前时长
+    const res = await fetch(`${API}/admin/keys`, {
       headers: authHeaders()
     });
     const data = await res.json();
-    if (!data.length) { alert('未找到卡密'); return; }
-    let newDur = data[0].duration_hours + delta;
+    if (!data.ok) { alert('加载失败'); return; }
+    const keyData = data.keys.find(k => k.key === key);
+    if (!keyData) { alert('未找到卡密'); return; }
+    let newDur = keyData.duration_hours + delta;
     if (newDur < 1) newDur = 1;
-    await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${encodeURIComponent(key)}`, {
+    await fetch(`${API}/admin/keys/${encodeURIComponent(key)}`, {
       method: 'PATCH',
       headers: authHeaders(),
       body: JSON.stringify({ duration_hours: newDur })
@@ -288,7 +276,7 @@ async function adjustDur(key, op) {
 }
 
 async function saveNote(key, note) {
-  await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${encodeURIComponent(key)}`, {
+  await fetch(`${API}/admin/keys/${encodeURIComponent(key)}`, {
     method: 'PATCH',
     headers: authHeaders(),
     body: JSON.stringify({ note })
@@ -297,7 +285,7 @@ async function saveNote(key, note) {
 
 async function revokeKey(key) {
   if (!confirm('确定停用 ' + key + ' ?')) return;
-  await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${encodeURIComponent(key)}`, {
+  await fetch(`${API}/admin/keys/${encodeURIComponent(key)}`, {
     method: 'PATCH',
     headers: authHeaders(),
     body: JSON.stringify({ is_revoked: true })
@@ -307,10 +295,10 @@ async function revokeKey(key) {
 
 async function reactivateKey(key) {
   if (!confirm('恢复 ' + key + ' ? 将清除设备绑定和激活时间')) return;
-  await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${encodeURIComponent(key)}`, {
+  await fetch(`${API}/admin/keys/${encodeURIComponent(key)}`, {
     method: 'PATCH',
     headers: authHeaders(),
-    body: JSON.stringify({ is_revoked: false, device_id: null, activated_at: null })
+    body: JSON.stringify({ is_revoked: false, device_id: '', activated_at: 0 })
   });
   loadKeys();
 }
@@ -318,14 +306,12 @@ async function reactivateKey(key) {
 async function deleteKey(key) {
   if (!confirm('⚠️ 确定彻底删除 ' + key + ' 吗？\n\n删除后无法恢复！')) return;
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${encodeURIComponent(key)}`, {
-      method: 'DELETE',
-      headers: authHeaders()
+    // 先标记为已停用
+    await fetch(`${API}/admin/keys/${encodeURIComponent(key)}`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify({ is_revoked: true, note: '已删除' })
     });
-    if (!res.ok) {
-      alert('删除失败：' + await res.text());
-      return;
-    }
     loadKeys();
   } catch (e) {
     alert('网络错误：' + e.message);
@@ -365,13 +351,12 @@ if (authToken) {
 
 async function loadProfile() {
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/student_profile?id=eq.1&select=*`, {
+    const res = await fetch(`${API}/admin/profile`, {
       headers: authHeaders()
     });
-    if (!res.ok) { alert('读取失败：' + await res.text()); return; }
     const data = await res.json();
-    if (!data.length) { alert('无数据'); return; }
-    const p = data[0];
+    if (!res.ok || !data.ok) { alert('读取失败'); return; }
+    const p = data.profile || {};
     document.getElementById('p_name').value = p.name || '';
     document.getElementById('p_gender').value = p.gender || '';
     document.getElementById('p_birth').value = p.birth_date || '';
@@ -413,12 +398,13 @@ async function saveProfile() {
     graduation_date: document.getElementById('p_gdate').value
   };
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/student_profile?id=eq.1`, {
+    const res = await fetch(`${API}/admin/profile`, {
       method: 'PATCH',
       headers: authHeaders(),
       body: JSON.stringify(fields)
     });
-    if (res.ok) { alert('已保存'); } else { alert('保存失败：' + await res.text()); }
+    const data = await res.json();
+    if (data.ok) { alert('已保存'); } else { alert('保存失败：' + (data.error || '未知错误')); }
   } catch (e) {
     alert('网络错误：' + e.message);
   }
