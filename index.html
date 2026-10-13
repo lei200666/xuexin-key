@@ -616,21 +616,29 @@
             document.getElementById('authOverlay').style.display = 'none';
             document.getElementById('page1').classList.add('active');
         }
-        async function callVerifyKey(key) {
-            const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/verify_key`, {
-                method: 'POST',
-                headers: {
-                    'apikey': ANON_KEY,
-                    'Authorization': 'Bearer ' + ANON_KEY,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    p_key: key,
-                    p_device_id: getDeviceId()
-                })
-            });
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            return res.json();
+        async function callVerifyKey(key, retryCount = 0) {
+            try {
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/verify_key`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': ANON_KEY,
+                        'Authorization': 'Bearer ' + ANON_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        p_key: key,
+                        p_device_id: getDeviceId()
+                    })
+                });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.json();
+            } catch (e) {
+                if (retryCount < 2) {
+                    await new Promise(r => setTimeout(r, 1500));
+                    return callVerifyKey(key, retryCount + 1);
+                }
+                throw e;
+            }
         }
         async function verifyKey() {
             const input = document.getElementById('authInput').value.trim().toUpperCase();
