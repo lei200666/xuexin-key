@@ -672,21 +672,23 @@
         async function checkExistingAuth() {
             const savedKey = localStorage.getItem('auth_key');
             if (!savedKey) return;
+            // 先直接进入页面，不让用户看到激活页
+            enterApp();
             try {
                 const result = await callVerifyKey(savedKey);
                 if (result && result.ok) {
-                    // 只有 localStorage 没有用户数据时（第一次使用），才用后端基础数据
+                    // 验证成功，如果是第一次使用才用后端基础数据
                     const hasLocalData = localStorage.getItem('student_data');
                     if (!hasLocalData) {
                         applyProfile(result.profile);
                     }
-                    enterApp();
                 } else {
+                    // 明确验证失败（卡密不存在/过期/停用），才退回激活页
                     localStorage.removeItem('auth_key');
+                    location.reload();
                 }
             } catch (e) {
-                // 网络错误，不清除 auth_key，直接进入页面（保留 localStorage 的内容）
-                enterApp();
+                // 网络错误，不退回，保留当前页面
             }
         }
         checkExistingAuth();
