@@ -331,13 +331,12 @@ async function batchDelete() {
   if (!confirm('⚠️ 确定彻底删除选中的 ' + checked.length + ' 条卡密吗？\n\n删除后无法恢复！')) return;
   const keys = Array.from(checked).map(cb => cb.value);
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/keys?key=in.(${keys.map(encodeURIComponent).join(',')})`, {
-      method: 'DELETE',
-      headers: authHeaders()
-    });
-    if (!res.ok) {
-      alert('批量删除失败：' + await res.text());
-      return;
+    // 循环删除每个卡密
+    for (const key of keys) {
+      await fetch(`${API}/admin/keys/${encodeURIComponent(key)}`, {
+        method: 'DELETE',
+        headers: authHeaders()
+      });
     }
     loadKeys();
   } catch (e) {
