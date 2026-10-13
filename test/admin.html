@@ -306,12 +306,15 @@ async function reactivateKey(key) {
 async function deleteKey(key) {
   if (!confirm('⚠️ 确定彻底删除 ' + key + ' 吗？\n\n删除后无法恢复！')) return;
   try {
-    // 先标记为已停用
-    await fetch(`${API}/admin/keys/${encodeURIComponent(key)}`, {
-      method: 'PATCH',
-      headers: authHeaders(),
-      body: JSON.stringify({ is_revoked: true, note: '已删除' })
+    const res = await fetch(`${API}/admin/keys/${encodeURIComponent(key)}`, {
+      method: 'DELETE',
+      headers: authHeaders()
     });
+    const data = await res.json();
+    if (!res.ok || !data.ok) {
+      alert('删除失败：' + (data.error || '未知错误'));
+      return;
+    }
     loadKeys();
   } catch (e) {
     alert('网络错误：' + e.message);
