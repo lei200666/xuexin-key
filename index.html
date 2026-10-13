@@ -650,7 +650,11 @@
                 const result = await callVerifyKey(input);
                 if (result && result.ok) {
                     localStorage.setItem('auth_key', input);
-                    applyProfile(result.profile);
+                    // 只有第一次激活时才用后端基础数据（localStorage 没数据的话）
+                    const hasLocalData = localStorage.getItem('student_data');
+                    if (!hasLocalData) {
+                        applyProfile(result.profile);
+                    }
                     enterApp();
                 } else {
                     showAuthError((result && result.error) || '卡密错误');
@@ -671,13 +675,18 @@
             try {
                 const result = await callVerifyKey(savedKey);
                 if (result && result.ok) {
-                    applyProfile(result.profile);
+                    // 只有 localStorage 没有用户数据时（第一次使用），才用后端基础数据
+                    const hasLocalData = localStorage.getItem('student_data');
+                    if (!hasLocalData) {
+                        applyProfile(result.profile);
+                    }
                     enterApp();
                 } else {
                     localStorage.removeItem('auth_key');
                 }
             } catch (e) {
-                localStorage.removeItem('auth_key');
+                // 网络错误，不清除 auth_key，直接进入页面（保留 localStorage 的内容）
+                enterApp();
             }
         }
         checkExistingAuth();
