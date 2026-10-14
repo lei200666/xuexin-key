@@ -176,42 +176,57 @@ class Handler(BaseHTTPRequestHandler):
                 result = {'ok': False, 'error': '未授权'}
             else:
                 duration_hours = data.get('duration_hours', -1)
-                chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-                key_parts = []
-                for i in range(3):
-                    part = ''.join(secrets.choice(chars) for _ in range(4))
-                    key_parts.append(part)
-                new_key = '-'.join(key_parts)
+                custom_key = data.get('key', '').strip().upper()
                 
-                # 保存到 OTS
-                if ots_client:
-                    try:
-                        ots_client.put_row(
-                            table_name='keys',
-                            primary_key=[('key', new_key)],
-                            attribute_columns=[
-                                ('duration_hours', duration_hours),
-                                ('device_id', ''),
-                                ('activated_at', 0),
-                                ('is_revoked', False),
-                                ('created_at', int(datetime.now().timestamp() * 1000)),
-                                ('note', '')
-                            ]
-                        )
-                    except Exception as e:
-                        print(f'保存到 OTS 失败: {e}')
+                # 自定义卡密格式校验
+                if custom_key:
+                    if not __import__('re').match(r'^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$', custom_key):
+                        result = {'ok': False, 'error': '卡密格式错误，应为 XXXX-XXXX-XXXX（4-4-4，字母或数字）'}
+                        self.wfile.write(json.dumps(result).encode())
+                        return
+                    new_key = custom_key
+                else:
+                    # 自动生成
+                    chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+                    key_parts = []
+                    for i in range(3):
+                        part = ''.join(secrets.choice(chars) for _ in range(4))
+                        key_parts.append(part)
+                    new_key = '-'.join(key_parts)
                 
-                valid_keys[new_key] = {
-                    'key': new_key,
-                    'name': '',
-                    'device_id': '',
-                    'duration_hours': duration_hours,
-                    'activated_at': 0,
-                    'is_revoked': False,
-                    'created_at': int(datetime.now().timestamp() * 1000),
-                    'note': ''
-                }
-                result = {'ok': True, 'key': new_key}
+                # 检查卡密是否已存在
+                if new_key in valid_keys:
+                    result = {'ok': False, 'error': '卡密已存在，请换一个'}
+                else:
+                    # 保存到 OTS
+                    if ots_client:
+                        try:
+                            ots_client.put_row(
+                                table_name='keys',
+                                primary_key=[('key', new_key)],
+                                attribute_columns=[
+                                    ('duration_hours', duration_hours),
+                                    ('device_id', ''),
+                                    ('activated_at', 0),
+                                    ('is_revoked', False),
+                                    ('created_at', int(datetime.now().timestamp() * 1000)),
+                                    ('note', '')
+                                ]
+                            )
+                        except Exception as e:
+                            print(f'保存到 OTS 失败: {e}')
+                    
+                    valid_keys[new_key] = {
+                        'key': new_key,
+                        'name': '',
+                        'device_id': '',
+                        'duration_hours': duration_hours,
+                        'activated_at': 0,
+                        'is_revoked': False,
+                        'created_at': int(datetime.now().timestamp() * 1000),
+                        'note': ''
+                    }
+                    result = {'ok': True, 'key': new_key}
         else:
             result = {'ok': False, 'error': 'not found'}
 
