@@ -647,11 +647,6 @@
                 const result = await callVerifyKey(input);
                 if (result && result.ok) {
                     localStorage.setItem('auth_key', input);
-                    // 只有第一次激活时才用后端基础数据（localStorage 没数据的话）
-                    const hasLocalData = localStorage.getItem('student_data');
-                    if (!hasLocalData) {
-                        applyProfile(result.profile);
-                    }
                     enterApp();
                 } else {
                     showAuthError((result && result.error) || '卡密错误');
@@ -674,11 +669,7 @@
             try {
                 const result = await callVerifyKey(savedKey);
                 if (result && result.ok) {
-                    // 验证成功，如果是第一次使用才用后端基础数据
-                    const hasLocalData = localStorage.getItem('student_data');
-                    if (!hasLocalData) {
-                        applyProfile(result.profile);
-                    }
+                    // 内容只来自 localStorage（5 次点击编辑模式），不使用后端 profile
                 } else {
                     // 明确验证失败（卡密不存在/过期/停用），才退回激活页
                     localStorage.removeItem('auth_key');
@@ -689,34 +680,6 @@
             }
         }
         checkExistingAuth();
-
-        // 后端下发学籍内容到页面
-        function applyProfile(p) {
-            if (!p) return;
-            const set = (id, val) => { const el = document.getElementById(id); if (el && val != null && val !== '') el.textContent = val; };
-            set('name', p.name);
-            const gb = document.getElementById('gender-birth');
-            if (gb && (p.gender || p.birth_date)) {
-                gb.innerHTML = `<span class="gender">${p.gender || ''}</span>${p.birth_date || ''}`;
-            }
-            set('school', p.school);
-            set('card1-school', p.school);
-            set('major-name', p.major);
-            set('nation', p.nation);
-            set('id-number', p.id_number);
-            set('study-period', p.study_period);
-            set('education-type', p.education_type);
-            set('campus', p.campus);
-            set('department', p.department);
-            set('class-name', p.class_name);
-            set('student-id', p.student_id);
-            set('enrollment-date', p.enrollment_date);
-            set('status', p.status);
-            set('graduation-date', p.graduation_date);
-            if (p.admission_photo) document.getElementById('admission-photo').innerHTML = p.admission_photo;
-            if (p.education_photo) document.getElementById('education-photo').innerHTML = p.education_photo;
-            if (typeof applyMajorToCards === 'function') applyMajorToCards();
-        }
 
         // 页面切换核心函数
         function showPage(pageId) {
