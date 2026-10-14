@@ -62,7 +62,13 @@ th { color:#999; font-weight:500; white-space:nowrap; }
         <option value="72">3天</option>
         <option value="168">7天</option>
       </select>
-      <input id="customKey" placeholder="XXXX-XXXX-XXXX（留空自动生成）" maxlength="14" autocomplete="off" style="flex:1;min-width:200px;">
+      <div style="flex:1;min-width:200px;display:flex;gap:4px;align-items:center;">
+        <input id="key1" maxlength="4" placeholder="XXXX" autocomplete="off" style="width:60px;text-align:center;text-transform:uppercase;">
+        <span style="color:#999;">-</span>
+        <input id="key2" maxlength="4" placeholder="XXXX" autocomplete="off" style="width:60px;text-align:center;text-transform:uppercase;">
+        <span style="color:#999;">-</span>
+        <input id="key3" maxlength="4" placeholder="XXXX" autocomplete="off" style="width:60px;text-align:center;text-transform:uppercase;">
+      </div>
       <button onclick="genKey()">生成卡密</button>
       <span id="genResult" style="font-size:14px;color:#26b887;"></span>
     </div>
@@ -155,14 +161,39 @@ function logout() {
 document.getElementById('adminPwd').addEventListener('keydown', e => { if(e.key==='Enter') login(); });
 document.getElementById('adminEmail').addEventListener('keydown', e => { if(e.key==='Enter') login(); });
 
+// 三段输入自动跳格
+function setupAutoJump() {
+  const k1 = document.getElementById('key1');
+  const k2 = document.getElementById('key2');
+  const k3 = document.getElementById('key3');
+  
+  // 输入满4个字符自动跳到下一个
+  k1.addEventListener('input', () => { if (k1.value.length === 4) k2.focus(); });
+  k2.addEventListener('input', () => { if (k2.value.length === 4) k3.focus(); });
+  
+  // 退格键如果为空自动跳到上一个
+  k2.addEventListener('keydown', e => { if (e.key === 'Backspace' && k2.value === '') k1.focus(); });
+  k3.addEventListener('keydown', e => { if (e.key === 'Backspace' && k3.value === '') k2.focus(); });
+}
+
+// 页面加载时启动自动跳格
+setupAutoJump();
+
 async function genKey() {
   const dur = parseInt(document.getElementById('durSelect').value);
-  const customKey = document.getElementById('customKey').value.trim().toUpperCase();
-
-  // 前端先校验格式（留空则跳过）
-  if (customKey && !/^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(customKey)) {
-    alert('卡密格式错误，应为 XXXX-XXXX-XXXX');
-    return;
+  const k1 = document.getElementById('key1').value.trim().toUpperCase();
+  const k2 = document.getElementById('key2').value.trim().toUpperCase();
+  const k3 = document.getElementById('key3').value.trim().toUpperCase();
+  
+  // 拼接成完整 key
+  let customKey = '';
+  if (k1 || k2 || k3) {
+    // 如果有任何一段输入了，就要求三段都填满
+    if (!k1 || !k2 || !k3) {
+      alert('请完整输入三段卡密（每段4个字符），或全部留空自动生成');
+      return;
+    }
+    customKey = k1 + '-' + k2 + '-' + k3;
   }
 
   try {
@@ -177,7 +208,9 @@ async function genKey() {
       return;
     }
     document.getElementById('genResult').textContent = '已生成: ' + data.key;
-    document.getElementById('customKey').value = '';
+    document.getElementById('key1').value = '';
+    document.getElementById('key2').value = '';
+    document.getElementById('key3').value = '';
     loadKeys();
   } catch (e) {
     alert('网络错误：' + e.message);
