@@ -311,7 +311,7 @@ async function deleteKey(key) {
       headers: authHeaders()
     });
     const data = await res.json();
-    if (!res.ok || !data.ok) {
+    if (!data.ok) {
       alert('删除失败：' + (data.error || '未知错误'));
       return;
     }
