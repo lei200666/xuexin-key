@@ -68,6 +68,7 @@ th { color:#999; font-weight:500; white-space:nowrap; }
   </div>
   <div class="card">
     <h3>卡密列表 (<span id="keyCount">0</span>)
+      <button onclick="loadKeys()" style="float:right;padding:6px 14px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">刷新</button>
       <button onclick="batchDelete()" style="float:right;padding:6px 14px;background:#7f1d1d;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;">批量删除选中</button>
     </h3>
     <div style="overflow-x:auto;">
@@ -137,12 +138,14 @@ async function login() {
     document.getElementById('loginView').style.display = 'none';
     document.getElementById('adminView').style.display = 'block';
     loadKeys();
+    startAutoRefresh();
   } catch (e) {
     errEl.textContent = '网络错误：' + e.message;
   }
 }
 
 function logout() {
+  if (window._refreshTimer) clearInterval(window._refreshTimer);
   localStorage.removeItem('admin_token');
   localStorage.removeItem('admin_email');
   location.reload();
@@ -179,6 +182,16 @@ function fmtRemaining(ms) {
   return h + '时' + m + '分';
 }
 
+// 把后端返回的时间戳统一转成毫秒（兼容秒/毫秒/字符串/Long 对象）
+function toMs(v) {
+    if (v == null || v === '') return 0;
+    if (typeof v === 'object' && typeof v.toNumber === 'function') v = v.toNumber(); // OTS Long 对象
+    v = Number(v);
+    if (!Number.isFinite(v)) return 0;
+    if (v < 1e12) v = v * 1000;   // 10 位是「秒」→ 转毫秒；13 位毫秒则不变
+    return v;
+}
+
 function copyKey(key) {
   navigator.clipboard.writeText(key).then(() => {
     const t = document.getElementById('copyToast');
@@ -206,7 +219,7 @@ async function loadKeys() {
       if (k.is_revoked) { status = '已停用'; badge = 'badge-revoked'; }
       else if (!k.device_id) { status = '未使用'; badge = 'badge-unused'; }
       else if (k.duration_hours !== -1 && k.activated_at) {
-        const expire = new Date(k.activated_at).getTime() + k.duration_hours * 3600 * 1000;
+        const expire = toMs(k.activated_at) + k.duration_hours * 3600 * 1000;
         const left = expire - Date.now();
         if (left <= 0) { status = '已过期'; badge = 'badge-expired'; }
         else { status = '使用中'; badge = 'badge-active'; remaining = fmtRemaining(left); }
@@ -245,6 +258,11 @@ async function loadKeys() {
   } catch (e) {
     alert('网络错误：' + e.message);
   }
+}
+
+function startAutoRefresh() {
+    if (window._refreshTimer) clearInterval(window._refreshTimer);
+    window._refreshTimer = setInterval(loadKeys, 15000); // 每 15 秒自动刷新一次
 }
 
 async function adjustDur(key, op) {
@@ -349,6 +367,7 @@ if (authToken) {
   document.getElementById('loginView').style.display = 'none';
   document.getElementById('adminView').style.display = 'block';
   loadKeys();
+  startAutoRefresh();
 }
 
 async function loadProfile() {
