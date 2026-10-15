@@ -599,6 +599,41 @@
     <script>
         // ==================== 阿里云 FC 卡密验证 ====================
         const API = 'https://xuexin-web-nhjqyrudaq.cn-hangzhou.fcapp.run';
+
+        // ===== IndexedDB 封装：用大容量存储替代 localStorage 存学籍内容 =====
+        let _dbPromise = null;
+        function getDB() {
+            if (!_dbPromise) {
+                _dbPromise = new Promise((resolve, reject) => {
+                    const req = indexedDB.open('xuexin', 1);
+                    req.onupgradeneeded = (e) => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
+                    };
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = () => reject(req.error);
+                });
+            }
+            return _dbPromise;
+        }
+        function idbSet(key, value) {
+            return getDB().then(db => new Promise((resolve, reject) => {
+                const tx = db.transaction('kv', 'readwrite');
+                tx.objectStore('kv').put(value, key);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+                tx.onabort = () => reject(tx.error);
+            }));
+        }
+        function idbGet(key) {
+            return getDB().then(db => new Promise((resolve, reject) => {
+                const tx = db.transaction('kv', 'readonly');
+                const req = tx.objectStore('kv').get(key);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            }));
+        }
+
         function getDeviceId() {
             let did = localStorage.getItem('device_id');
             if (!did) {
@@ -758,6 +793,7 @@
                 el.contentEditable = true;
                 el.classList.add('editable');
                 el.addEventListener('input', saveData);
+                el.addEventListener('blur', saveData);
             });
 
             const admissionPhoto = document.getElementById('admission-photo');
@@ -782,6 +818,7 @@
                 el.contentEditable = false;
                 el.classList.remove('editable');
                 el.removeEventListener('input', saveData);
+                el.removeEventListener('blur', saveData);
             });
 
             const admissionPhoto = document.getElementById('admission-photo');
@@ -796,6 +833,31 @@
             removeDeleteBtnFromPhoto('education-photo');
         }
 
+        // 压缩图片：最大边 800px，输出 JPEG（质量 0.7），并统一 HEIC→JPEG
+        function compressImage(dataUrl, callback) {
+            const img = new Image();
+            img.onload = () => {
+                try {
+                    const maxSize = 800;
+                    let w = img.naturalWidth || img.width;
+                    let h = img.naturalHeight || img.height;
+                    const scale = Math.min(1, maxSize / Math.max(w, h));
+                    w = Math.max(1, Math.round(w * scale));
+                    h = Math.max(1, Math.round(h * scale));
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    callback(canvas.toDataURL('image/jpeg', 0.7));
+                } catch (e) {
+                    callback(dataUrl);
+                }
+            };
+            img.onerror = () => callback(dataUrl);
+            img.src = dataUrl;
+        }
+
         // 照片上传功能
         function handlePhotoUpload(inputId, containerId) {
             const input = document.getElementById(inputId);
@@ -808,10 +870,11 @@
                 if (file && file.type.startsWith('image/')) {
                     const reader = new FileReader();
                     reader.onload = (e) => {
-                        container.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:6px">`;
-                        // 新上传的照片立即出现删除按钮
-                        addDeleteBtnToPhoto(containerId);
-                        saveData();
+                        compressImage(e.target.result, (finalUrl) => {
+                            container.innerHTML = `<img src="${finalUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:6px">`;
+                            addDeleteBtnToPhoto(containerId);
+                            saveData();
+                        });
                     };
                     reader.readAsDataURL(file);
                 }
@@ -868,28 +931,48 @@
                 const el = document.getElementById(id);
                 if (el) data.text[id] = el.innerText;
             });
-            localStorage.setItem('student_data', JSON.stringify(data));
+            idbSet('student_data', data).catch(() => {
+                alert('保存失败，请重试');
+            });
         }
 
         // 页面加载自动恢复数据
-        function loadData() {
-            const data = localStorage.getItem('student_data');
+        async function loadData() {
+            let data = null;
+            try {
+                data = await idbGet('student_data');
+            } catch (e) {
+                data = null;
+            }
+
+            // 迁移：IndexedDB 没数据、但 localStorage 还有旧数据时，搬过来
+            if (!data) {
+                const old = localStorage.getItem('student_data');
+                if (old) {
+                    try { data = JSON.parse(old); } catch (e) { data = null; }
+                    if (data) {
+                        try {
+                            await idbSet('student_data', data);
+                            localStorage.removeItem('student_data'); // 仅写入成功后才删除旧数据
+                        } catch (e) {
+                            // 写入失败：保留 localStorage 旧数据，下次再迁移
+                        }
+                    }
+                }
+            }
+
             if (!data) return;
 
-            const { text, photos } = JSON.parse(data);
+            const text = data.text || {};
+            const photos = data.photos || {};
             editableElements.forEach(id => {
                 const el = document.getElementById(id);
                 if (el && text[id] !== undefined) el.innerText = text[id];
             });
-
-            document.getElementById('admission-photo').innerHTML = photos.admission;
-            document.getElementById('education-photo').innerHTML = photos.education;
-
-            // 兜底：旧数据里可能残留删除按钮，恢复后立即清除
+            if (photos.admission) document.getElementById('admission-photo').innerHTML = photos.admission;
+            if (photos.education) document.getElementById('education-photo').innerHTML = photos.education;
             removeDeleteBtnFromPhoto('admission-photo');
             removeDeleteBtnFromPhoto('education-photo');
-
-            // 恢复专业后同步到列表页卡片
             applyMajorToCards();
         }
 
