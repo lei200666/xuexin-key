@@ -433,10 +433,8 @@ class Handler(BaseHTTPRequestHandler):
                     # 从 OTS 删除
                     if ots_client:
                         try:
-                            ots_client.delete_row(
-                                table_name='keys',
-                                primary_key=[('key', key)]
-                            )
+                            row_delete = Row(primary_key=[('key', key)], attribute_columns=[])
+                            ots_client.delete_row(table_name='keys', row=row_delete)
                         except Exception as e:
                             print(f'从 OTS 删除失败: {e}')
                     result = {'ok': True}
