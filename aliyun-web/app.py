@@ -12,8 +12,8 @@ OTS_ACCESS_KEY_ID = os.environ.get('OTS_ACCESS_KEY_ID', '')
 OTS_ACCESS_KEY_SECRET = os.environ.get('OTS_ACCESS_KEY_SECRET', '')
 OTS_INSTANCE = os.environ.get('OTS_INSTANCE', '')
 
-ADMIN_PASSWORD = 'Admin@2026'
-ADMIN_TOKEN = 'xuexin_admin_token_2026'
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '')
+ADMIN_TOKEN = os.environ.get('ADMIN_TOKEN', '')
 
 KEYS_TABLE = 'keys'
 USAGE_TABLE = 'key_usage'
