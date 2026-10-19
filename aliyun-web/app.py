@@ -382,28 +382,6 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(result).encode())
 
 if __name__ == '__main__':
-    # 初始化内存缓存（先放几个测试卡密）
-    valid_keys['FF7E-KEZ2-2GYX'] = {
-        'key': 'FF7E-KEZ2-2GYX',
-        'name': '测试用户',
-        'device_id': '',
-        'duration_hours': -1,
-        'activated_at': 0,
-        'is_revoked': False,
-        'created_at': 1728000000000,
-        'note': ''
-    }
-    valid_keys['ZM4Q-4A5Q-LN2L'] = {
-        'key': 'ZM4Q-4A5Q-LN2L',
-        'name': '纯牛马',
-        'device_id': '',
-        'duration_hours': -1,
-        'activated_at': 0,
-        'is_revoked': False,
-        'created_at': 1728000000000,
-        'note': ''
-    }
-    
     # 从 OTS 加载卡密
     if ots_client:
         try:
@@ -424,6 +402,8 @@ if __name__ == '__main__':
             print(f'从 OTS 加载了 {len(valid_keys)} 张卡密')
         except Exception as e:
             print(f'从 OTS 加载卡密失败: {e}')
+    else:
+        print('OTS 客户端未初始化，环境变量未配置')
     
     server = HTTPServer(('0.0.0.0', 9000), Handler)
     print('Server running on port 9000')
