@@ -436,7 +436,9 @@ class Handler(BaseHTTPRequestHandler):
                             row_delete = Row(primary_key=[('key', key)], attribute_columns=[])
                             ots_client.delete_row(table_name='keys', row=row_delete)
                         except Exception as e:
-                            print(f'从 OTS 删除失败: {e}')
+                            result = {'ok': False, 'error': f'从 OTS 删除失败: {str(e)}'}
+                            self.wfile.write(json.dumps(result).encode())
+                            return
                     result = {'ok': True}
                 else:
                     result = {'ok': False, 'error': '卡密不存在'}
