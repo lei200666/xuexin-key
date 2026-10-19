@@ -179,7 +179,9 @@ class Handler(BaseHTTPRequestHandler):
                             )
                             count += 1
                         except Exception as e:
-                            print(f'导入卡密失败 {key}: {e}')
+                            result = {'ok': False, 'error': f'导入卡密 {key} 失败: {str(e)}'}
+                            self.wfile.write(json.dumps(result).encode())
+                            return
                 result = {'ok': True, 'count': count}
         elif self.path == '/admin/keys/reorder':
             auth = self.headers.get('Authorization', '')
@@ -253,7 +255,9 @@ class Handler(BaseHTTPRequestHandler):
                                     attribute_columns=[('device_id', device_id)]
                                 )
                             except Exception as e:
-                                print(f'记录使用失败: {e}')
+                                result = {'ok': False, 'error': f'记录使用失败: {str(e)}'}
+                                self.wfile.write(json.dumps(result).encode())
+                                return
                         
                         result = {
                             'ok': True,
@@ -327,7 +331,9 @@ class Handler(BaseHTTPRequestHandler):
                                 ]
                             )
                         except Exception as e:
-                            print(f'保存到 OTS 失败: {e}')
+                            result = {'ok': False, 'error': f'保存卡密到 OTS 失败: {str(e)}'}
+                            self.wfile.write(json.dumps(result).encode())
+                            return
                     
                     valid_keys[new_key] = {
                         'key': new_key,
@@ -449,7 +455,7 @@ if __name__ == '__main__':
         except Exception as e:
             print(f'从 OTS 加载卡密失败: {e}')
     else:
-        print('OTS 客户端未初始化，环境变量未配置')
+        print('⚠️ OTS 客户端未初始化，请检查 OTS 环境变量')
     
     server = HTTPServer(('0.0.0.0', 9000), Handler)
     print('Server running on port 9000')
