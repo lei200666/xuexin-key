@@ -109,19 +109,14 @@ th { color:var(--muted); font-weight:500; white-space:nowrap; }
     </div>
   </div>
   <div class="card">
-    <h3>备份与恢复</h3>
-    <div class="gen-row">
-      <button onclick="exportKeys()">导出卡密</button>
-      <button onclick="document.getElementById('importFile').click()">导入卡密</button>
-      <input type="file" id="importFile" accept=".json,application/json" style="display:none;" onchange="importKeys(this)">
-    </div>
-  </div>
-  <div class="card">
     <h3>卡密列表 (<span id="keyCount">0</span>)
       <button onclick="loadKeys()" style="float:right;padding:6px 14px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">刷新</button>
       <button onclick="batchDelete()" style="float:right;padding:6px 14px;background:#7f1d1d;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">批量删除选中</button>
       <button onclick="batchRevoke()" style="float:right;padding:6px 14px;background:#e74c3c;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">批量停用</button>
       <button onclick="batchReactivate()" style="float:right;padding:6px 14px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">批量恢复</button>
+      <button onclick="exportKeys()" style="float:right;padding:6px 14px;background:#26b887;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">导出卡密</button>
+      <button onclick="document.getElementById('importFile').click()" style="float:right;padding:6px 14px;background:#f59e0b;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">导入卡密</button>
+      <input type="file" id="importFile" accept=".json,application/json" style="display:none;" onchange="importKeys(this)">
     </h3>
     <div style="overflow-x:auto;">
     <table>
@@ -256,22 +251,54 @@ function toMs(v) {
     return v;
 }
 
+function fmtDateTime(ts) {
+  if (!ts) return '';
+  const d = new Date(toMs(ts));
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function getDurText(k) {
+  if (k.duration_hours === -1) return '永久';
+  return k.duration_hours + '小时';
+}
+
+function getStatusText(k) {
+  if (k.is_revoked) return '已停用';
+  if (!k.device_id) return '未使用';
+  return '使用中';
+}
+
 async function exportKeys() {
   try {
     const res = await fetch(`${API}/admin/keys`, { headers: authHeaders() });
     const data = await res.json();
     if (!res.ok || !data.ok) { alert('导出失败：' + (data.error || '未知错误')); return; }
     const keys = data.keys || [];
+    const items = keys.map(k => ({
+      '卡密': k.key,
+      '时长': getDurText(k),
+      '状态': getStatusText(k),
+      '绑定设备': k.device_id || '',
+      '激活时间': fmtDateTime(k.activated_at),
+      '创建时间': fmtDateTime(k.created_at),
+      '最后使用': fmtDateTime(k.last_used_at),
+      '备注': k.note || '',
+      '_raw': k
+    }));
     const payload = {
-      exported_at: new Date().toISOString(),
-      count: keys.length,
-      keys: keys
+      '导出时间': new Date().toISOString(),
+      '数量': keys.length,
+      '卡密列表': items
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `keys-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    const now = new Date();
+    const p = n => String(n).padStart(2, '0');
+    const fname = `卡密备份-${now.getFullYear()}${p(now.getMonth()+1)}${p(now.getDate())}-${p(now.getHours())}${p(now.getMinutes())}${p(now.getSeconds())}.json`;
+    a.download = fname;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -288,7 +315,8 @@ async function importKeys(input) {
   try {
     const text = await file.text();
     const parsed = JSON.parse(text);
-    const keys = Array.isArray(parsed.keys) ? parsed.keys : (Array.isArray(parsed) ? parsed : []);
+    const items = parsed['卡密列表'] || parsed.keys || (Array.isArray(parsed) ? parsed : []);
+    const keys = items.map(item => (item && item._raw) ? item._raw : item).filter(k => k && k.key);
     if (!keys.length) { alert('文件里没有卡密数据'); input.value = ''; return; }
     const res = await fetch(`${API}/admin/keys/import`, {
       method: 'POST',
