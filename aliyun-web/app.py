@@ -192,19 +192,33 @@ class Handler(BaseHTTPRequestHandler):
                             key_data['activated_at'] = now_ts
                         key_data['last_used_at'] = now_ts
                         
-                        # 写入使用记录到 OTS
+                        # 写入 OTS
                         if ots_client:
                             try:
+                                # ① 如果是首次激活，更新 device_id 和 activated_at
+                                if not key_data.get('device_id') and device_id:
+                                    ots_client.update_row(
+                                        table_name='keys',
+                                        primary_key=[('key', key)],
+                                        update_of_attribute_columns=[
+                                            ('device_id', device_id),
+                                            ('activated_at', now_ts),
+                                            ('last_used_at', now_ts)
+                                        ]
+                                    )
+                                else:
+                                    # ② 只更新 last_used_at
+                                    ots_client.update_row(
+                                        table_name='keys',
+                                        primary_key=[('key', key)],
+                                        update_of_attribute_columns=[('last_used_at', now_ts)]
+                                    )
+                                
+                                # ③ 写一条使用记录
                                 ots_client.put_row(
                                     table_name='key_usage',
                                     primary_key=[('key', key), ('ts', now_ts)],
                                     attribute_columns=[('device_id', device_id)]
-                                )
-                                # 更新 keys 表的 last_used_at
-                                ots_client.update_row(
-                                    table_name='keys',
-                                    primary_key=[('key', key)],
-                                    update_of_attribute_columns=[('last_used_at', now_ts)]
                                 )
                             except Exception as e:
                                 print(f'记录使用失败: {e}')
