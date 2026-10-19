@@ -109,6 +109,14 @@ th { color:var(--muted); font-weight:500; white-space:nowrap; }
     </div>
   </div>
   <div class="card">
+    <h3>备份与恢复</h3>
+    <div class="gen-row">
+      <button onclick="exportKeys()">导出卡密</button>
+      <button onclick="document.getElementById('importFile').click()">导入卡密</button>
+      <input type="file" id="importFile" accept=".json,application/json" style="display:none;" onchange="importKeys(this)">
+    </div>
+  </div>
+  <div class="card">
     <h3>卡密列表 (<span id="keyCount">0</span>)
       <button onclick="loadKeys()" style="float:right;padding:6px 14px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">刷新</button>
       <button onclick="batchDelete()" style="float:right;padding:6px 14px;background:#7f1d1d;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">批量删除选中</button>
@@ -246,6 +254,54 @@ function toMs(v) {
     if (!Number.isFinite(v)) return 0;
     if (v < 1e12) v = v * 1000;   // 10 位是「秒」→ 转毫秒；13 位毫秒则不变
     return v;
+}
+
+async function exportKeys() {
+  try {
+    const res = await fetch(`${API}/admin/keys`, { headers: authHeaders() });
+    const data = await res.json();
+    if (!res.ok || !data.ok) { alert('导出失败：' + (data.error || '未知错误')); return; }
+    const keys = data.keys || [];
+    const payload = {
+      exported_at: new Date().toISOString(),
+      count: keys.length,
+      keys: keys
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `keys-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    alert('导出失败：' + e.message);
+  }
+}
+
+async function importKeys(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (!confirm('导入会用文件内容覆盖/新增卡密，确定继续？')) { input.value = ''; return; }
+  try {
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    const keys = Array.isArray(parsed.keys) ? parsed.keys : (Array.isArray(parsed) ? parsed : []);
+    if (!keys.length) { alert('文件里没有卡密数据'); input.value = ''; return; }
+    const res = await fetch(`${API}/admin/keys/import`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ keys: keys })
+    });
+    const result = await res.json();
+    if (result && result.ok) { alert('导入成功：' + result.count + ' 条'); loadKeys(); }
+    else { alert('导入失败：' + (result && result.error || '未知错误')); }
+  } catch (e) {
+    alert('导入失败：' + e.message);
+  }
+  input.value = '';
 }
 
 function escapeHtml(s) {

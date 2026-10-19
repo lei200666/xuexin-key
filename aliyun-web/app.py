@@ -149,7 +149,39 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', 'application/json')
         self.end_headers()
 
-        if self.path == '/admin/keys/reorder':
+        if self.path == '/admin/keys/import':
+            auth = self.headers.get('Authorization', '')
+            if auth != 'Bearer ' + ADMIN_TOKEN:
+                result = {'ok': False, 'error': '未授权'}
+            else:
+                keys = data.get('keys', [])
+                count = 0
+                if ots_client:
+                    for k in keys:
+                        key = str(k.get('key', '')).strip()
+                        if not key:
+                            continue
+                        try:
+                            attrs = [
+                                ('duration_hours', k.get('duration_hours', -1)),
+                                ('device_id', k.get('device_id', '')),
+                                ('activated_at', k.get('activated_at', 0)),
+                                ('is_revoked', k.get('is_revoked', False)),
+                                ('created_at', k.get('created_at', 0)),
+                                ('last_used_at', k.get('last_used_at', 0)),
+                                ('note', k.get('note', '')),
+                                ('sort_order', k.get('sort_order', 0))
+                            ]
+                            ots_client.put_row(
+                                table_name='keys',
+                                primary_key=[('key', key)],
+                                attribute_columns=attrs
+                            )
+                            count += 1
+                        except Exception as e:
+                            print(f'导入卡密失败 {key}: {e}')
+                result = {'ok': True, 'count': count}
+        elif self.path == '/admin/keys/reorder':
             auth = self.headers.get('Authorization', '')
             if auth != 'Bearer ' + ADMIN_TOKEN:
                 result = {'ok': False, 'error': '未授权'}
