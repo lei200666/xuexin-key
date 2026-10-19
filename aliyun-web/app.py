@@ -52,10 +52,11 @@ class Handler(BaseHTTPRequestHandler):
                 limit=1000
             )
             valid_keys.clear()
-            for row in response.rows:
-                key = row[0][1]
+            rows = response[2]
+            for row in rows:
+                key = row.primary_key[0][1]
                 key_data = {}
-                for col in row[1]:
+                for col in row.attribute_columns:
                     key_data[col[0]] = col[1]
                 key_data['key'] = key
                 valid_keys[key] = key_data
@@ -85,10 +86,11 @@ class Handler(BaseHTTPRequestHandler):
                             exclusive_end_primary_key=[('key', key), ('ts', 9999999999999)],
                             limit=200
                         )
-                        for row in response.rows:
-                            ts = row[0][1]
+                        rows = response[2]
+                        for row in rows:
+                            ts = row.primary_key[1][1]
                             device_id = ''
-                            for col in row[1]:
+                            for col in row.attribute_columns:
                                 if col[0] == 'device_id':
                                     device_id = col[1]
                             usages.append({'ts': ts, 'device_id': device_id})
@@ -444,10 +446,11 @@ if __name__ == '__main__':
                 exclusive_end_primary_key=[('key', chr(0x10FFFF))],
                 limit=1000
             )
-            for row in response.rows:
-                key = row[0][1]
+            rows = response[2]
+            for row in rows:
+                key = row.primary_key[0][1]
                 key_data = {}
-                for col in row[1]:
+                for col in row.attribute_columns:
                     key_data[col[0]] = col[1]
                 key_data['key'] = key
                 valid_keys[key] = key_data
