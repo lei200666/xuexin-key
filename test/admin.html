@@ -460,7 +460,16 @@ async function loadKeys() {
 
 function startAutoRefresh() {
     if (window._refreshTimer) clearInterval(window._refreshTimer);
-    window._refreshTimer = setInterval(loadKeys, 60000); // 每 60 秒自动刷新一次
+    window._refreshTimer = setInterval(() => {
+        // 正在编辑（输入框有焦点）时跳过
+        const active = document.activeElement;
+        const editing = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable);
+        // 有展开的使用历史时跳过
+        const hasExpanded = !!document.querySelector('.usage-detail');
+        if (!editing && !hasExpanded) {
+            loadKeys();
+        }
+    }, 60000); // 每 60 秒自动刷新一次
 }
 
 async function adjustDur(key, op) {

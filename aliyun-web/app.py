@@ -203,12 +203,6 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 self.send_json({'ok': False, 'error': f'查询卡密列表失败: {str(e)}'})
 
-        elif self.path == '/admin/profile':
-            if not self.check_auth():
-                self.send_json({'ok': False, 'error': '未授权'})
-                return
-            self.send_json({'ok': True, 'profile': get_profile_data()})
-
         else:
             self.send_json({'ok': False, 'error': 'not found'}, 404)
 
@@ -259,30 +253,31 @@ class Handler(BaseHTTPRequestHandler):
                 return
             key = self.path.split('/')[-1]
             try:
-                key_data = get_one_key(key)
-                if not key_data:
+                # 先确认卡密存在
+                if not get_one_key(key):
                     self.send_json({'ok': False, 'error': '卡密不存在'})
                     return
 
-                # 更新字段
+                # 只更新传入的字段（用 update_row，避免整行覆盖的竞态）
+                put_columns = []
                 if 'is_revoked' in data:
-                    key_data['is_revoked'] = data['is_revoked']
+                    put_columns.append(('is_revoked', data['is_revoked']))
                 if 'duration_hours' in data:
-                    key_data['duration_hours'] = data['duration_hours']
+                    put_columns.append(('duration_hours', data['duration_hours']))
                 if 'note' in data:
-                    key_data['note'] = data['note']
+                    put_columns.append(('note', data['note']))
 
-                # 写回 OTS
-                put_key(key_data)
+                if put_columns:
+                    row_update = Row(
+                        primary_key=[('key', key)],
+                        attribute_columns={'PUT': put_columns}
+                    )
+                    condition = Condition(RowExistenceExpectation.EXPECT_EXIST, None)
+                    ots_client.update_row(table_name=KEYS_TABLE, row=row_update, condition=condition)
+
                 self.send_json({'ok': True})
             except Exception as e:
                 self.send_json({'ok': False, 'error': f'更新失败: {str(e)}'})
-
-        elif self.path == '/admin/profile':
-            if not self.check_auth():
-                self.send_json({'ok': False, 'error': '未授权'})
-                return
-            self.send_json({'ok': True})
 
         else:
             self.send_json({'ok': False, 'error': 'not found'}, 404)
@@ -347,10 +342,7 @@ class Handler(BaseHTTPRequestHandler):
             # 写使用记录
             add_usage_record(key, now_ts, device_id)
 
-            self.send_json({
-                'ok': True,
-                'profile': get_profile_data()
-            })
+            self.send_json({'ok': True})
 
         except Exception as e:
             self.send_json({'ok': False, 'error': f'验证失败: {str(e)}'})
@@ -461,29 +453,6 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json({'ok': True})
         except Exception as e:
             self.send_json({'ok': False, 'error': f'更新排序失败: {str(e)}'})
-
-
-# ========== 学生档案数据 ==========
-
-def get_profile_data():
-    return {
-        'name': '测试用户',
-        'school': '安阳学院',
-        'major': '机电一体化技术',
-        'gender': '男',
-        'birth_date': '2006年08月01日',
-        'nation': '汉族',
-        'id_number': '41112320060801XXXX',
-        'study_period': '3年',
-        'education_type': '普通高等教育',
-        'campus': '安阳校区',
-        'department': '航空工程学院',
-        'class_name': '2401',
-        'student_id': '242700XXX',
-        'enrollment_date': '2024年09月01日',
-        'status': '在籍（注册学籍）',
-        'graduation_date': '2027年07月01日'
-    }
 
 
 # ========== 启动 ==========
