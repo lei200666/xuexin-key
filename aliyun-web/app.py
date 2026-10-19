@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 import secrets
 import os
-from tablestore import OTSClient
+from tablestore import OTSClient, Row
 
 # OTS 配置（从环境变量读取）
 OTS_ENDPOINT = os.environ.get('OTS_ENDPOINT', '')
@@ -172,11 +172,11 @@ class Handler(BaseHTTPRequestHandler):
                                 ('note', k.get('note', '')),
                                 ('sort_order', k.get('sort_order', 0))
                             ]
-                            ots_client.put_row(
-                                table_name='keys',
+                            row = Row(
                                 primary_key=[('key', key)],
                                 attribute_columns=attrs
                             )
+                            ots_client.put_row(table_name='keys', row=row)
                             count += 1
                         except Exception as e:
                             result = {'ok': False, 'error': f'导入卡密 {key} 失败: {str(e)}'}
@@ -249,11 +249,11 @@ class Handler(BaseHTTPRequestHandler):
                                     )
                                 
                                 # ③ 写一条使用记录
-                                ots_client.put_row(
-                                    table_name='key_usage',
+                                row = Row(
                                     primary_key=[('key', key), ('ts', now_ts)],
                                     attribute_columns=[('device_id', device_id)]
                                 )
+                                ots_client.put_row(table_name='key_usage', row=row)
                             except Exception as e:
                                 result = {'ok': False, 'error': f'记录使用失败: {str(e)}'}
                                 self.wfile.write(json.dumps(result).encode())
@@ -317,8 +317,7 @@ class Handler(BaseHTTPRequestHandler):
                     # 保存到 OTS
                     if ots_client:
                         try:
-                            ots_client.put_row(
-                                table_name='keys',
+                            row = Row(
                                 primary_key=[('key', new_key)],
                                 attribute_columns=[
                                     ('duration_hours', duration_hours),
@@ -330,6 +329,7 @@ class Handler(BaseHTTPRequestHandler):
                                     ('note', '')
                                 ]
                             )
+                            ots_client.put_row(table_name='keys', row=row)
                         except Exception as e:
                             result = {'ok': False, 'error': f'保存卡密到 OTS 失败: {str(e)}'}
                             self.wfile.write(json.dumps(result).encode())
