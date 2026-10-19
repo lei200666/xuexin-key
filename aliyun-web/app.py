@@ -68,7 +68,35 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', 'application/json')
         self.end_headers()
 
-        if self.path == '/admin/keys':
+        if self.path.startswith('/admin/keys/') and self.path.endswith('/usage'):
+            auth = self.headers.get('Authorization', '')
+            if auth != 'Bearer ' + ADMIN_TOKEN:
+                result = {'ok': False, 'error': '未授权'}
+            else:
+                parts = self.path.split('/')
+                key = parts[3]
+                usages = []
+                if ots_client:
+                    try:
+                        response = ots_client.get_range(
+                            table_name='key_usage',
+                            direction='FORWARD',
+                            inclusive_start_primary_key=[('key', key), ('ts', 0)],
+                            exclusive_end_primary_key=[('key', key), ('ts', 9999999999999)],
+                            limit=200
+                        )
+                        for row in response.rows:
+                            ts = row[0][1]
+                            device_id = ''
+                            for col in row[1]:
+                                if col[0] == 'device_id':
+                                    device_id = col[1]
+                            usages.append({'ts': ts, 'device_id': device_id})
+                        usages.sort(key=lambda x: x['ts'], reverse=True)
+                    except Exception as e:
+                        print(f'查询使用记录失败: {e}')
+                result = {'ok': True, 'usages': usages}
+        elif self.path == '/admin/keys':
             auth = self.headers.get('Authorization', '')
             if auth != 'Bearer ' + ADMIN_TOKEN:
                 result = {'ok': False, 'error': '未授权'}
@@ -76,6 +104,8 @@ class Handler(BaseHTTPRequestHandler):
                 # 从 OTS 加载最新数据
                 self.load_keys_from_ots()
                 keys = list(valid_keys.values())
+                # 按 sort_order 排序，相同则按 created_at 排序
+                keys.sort(key=lambda k: (k.get('sort_order', 0), k.get('created_at', 0)))
                 result = {'ok': True, 'keys': keys}
         elif self.path == '/admin/profile':
             auth = self.headers.get('Authorization', '')
@@ -119,7 +149,24 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', 'application/json')
         self.end_headers()
 
-        if self.path == '/verify' or self.path == '/':
+        if self.path == '/admin/keys/reorder':
+            auth = self.headers.get('Authorization', '')
+            if auth != 'Bearer ' + ADMIN_TOKEN:
+                result = {'ok': False, 'error': '未授权'}
+            else:
+                keys = data.get('keys', [])
+                if ots_client:
+                    for i, key in enumerate(keys):
+                        try:
+                            ots_client.update_row(
+                                table_name='keys',
+                                primary_key=[('key', key)],
+                                update_of_attribute_columns=[('sort_order', i)]
+                            )
+                        except Exception as e:
+                            print(f'更新排序失败: {e}')
+                result = {'ok': True}
+        elif self.path == '/verify' or self.path == '/':
             key = data.get('p_key', '').strip().upper()
             device_id = data.get('p_device_id', '')
             
@@ -139,9 +186,28 @@ class Handler(BaseHTTPRequestHandler):
                     elif key_data.get('device_id') and key_data.get('device_id') != device_id:
                         result = {'ok': False, 'error': '卡密已绑定其他设备'}
                     else:
+                        now_ts = int(datetime.now().timestamp())
                         if not key_data.get('device_id') and device_id:
                             key_data['device_id'] = device_id
-                            key_data['activated_at'] = int(datetime.now().timestamp())
+                            key_data['activated_at'] = now_ts
+                        key_data['last_used_at'] = now_ts
+                        
+                        # 写入使用记录到 OTS
+                        if ots_client:
+                            try:
+                                ots_client.put_row(
+                                    table_name='key_usage',
+                                    primary_key=[('key', key), ('ts', now_ts)],
+                                    attribute_columns=[('device_id', device_id)]
+                                )
+                                # 更新 keys 表的 last_used_at
+                                ots_client.update_row(
+                                    table_name='keys',
+                                    primary_key=[('key', key)],
+                                    update_of_attribute_columns=[('last_used_at', now_ts)]
+                                )
+                            except Exception as e:
+                                print(f'记录使用失败: {e}')
                         
                         result = {
                             'ok': True,
@@ -210,6 +276,7 @@ class Handler(BaseHTTPRequestHandler):
                                     ('activated_at', 0),
                                     ('is_revoked', False),
                                     ('created_at', int(datetime.now().timestamp() * 1000)),
+                                    ('sort_order', 0),
                                     ('note', '')
                                 ]
                             )

@@ -5,40 +5,70 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>卡密管理后台</title>
 <style>
+:root {
+  --bg: #05070f;
+  --panel: rgba(18, 28, 48, 0.62);
+  --border: rgba(0, 229, 255, 0.22);
+  --neon: #00e5ff;
+  --green: #26b887;
+  --text: #dbe6f5;
+  --muted: #7a8aa0;
+}
 * { margin:0; padding:0; box-sizing:border-box; }
-body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background:#f5f6fa; padding:20px; }
-.login-box { max-width:400px; margin:80px auto; background:#fff; border-radius:12px; padding:32px; box-shadow:0 2px 12px rgba(0,0,0,.08); }
-.login-box h2 { text-align:center; margin-bottom:20px; font-size:20px; }
-.login-box input { width:100%; padding:12px; border:1.5px solid #e0e0e0; border-radius:8px; font-size:15px; margin-bottom:12px; }
-.login-box button { width:100%; padding:12px; background:#26b887; color:#fff; border:none; border-radius:8px; font-size:15px; cursor:pointer; }
-.login-box .err { color:#e74c3c; font-size:13px; text-align:center; }
-.admin-panel { max-width:1000px; margin:0 auto; display:none; }
-.admin-panel h1 { font-size:22px; margin-bottom:20px; }
-.card { background:#fff; border-radius:12px; padding:20px; margin-bottom:16px; box-shadow:0 1px 6px rgba(0,0,0,.06); }
-.card h3 { font-size:16px; margin-bottom:14px; }
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background:
+    radial-gradient(1100px 700px at 15% -10%, rgba(0,229,255,.16), transparent 55%),
+    radial-gradient(900px 650px at 100% 0%, rgba(38,184,135,.16), transparent 50%),
+    linear-gradient(rgba(0,229,255,.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,.05) 1px, transparent 1px),
+    var(--bg);
+  background-size: auto, auto, 42px 42px, 42px 42px, auto;
+  color: var(--text);
+  padding:20px;
+  min-height:100vh;
+}
+.login-box { max-width:400px; margin:80px auto; background:var(--panel); backdrop-filter:blur(14px); border:1px solid var(--border); border-radius:16px; padding:32px; box-shadow:0 0 34px rgba(0,229,255,.10); }
+.login-box h2 { text-align:center; margin-bottom:20px; font-size:20px; color:#eaf6ff; }
+.login-box input { width:100%; padding:12px; border:1.5px solid var(--border); border-radius:8px; font-size:15px; margin-bottom:12px; background:rgba(0,0,0,.2); color:var(--text); }
+.login-box button { width:100%; padding:12px; background:var(--neon); color:#000; border:none; border-radius:8px; font-size:15px; cursor:pointer; font-weight:600; }
+.login-box .err { color:#ff7a6a; font-size:13px; text-align:center; }
+.admin-panel { max-width:1100px; margin:0 auto; display:none; }
+.admin-panel h1 { font-size:22px; margin-bottom:20px; color:#eaf6ff; }
+.card { background:var(--panel); backdrop-filter:blur(14px); border:1px solid var(--border); border-radius:16px; padding:20px; margin-bottom:16px; box-shadow:0 0 34px rgba(0,229,255,.10); }
+.card h3 { font-size:16px; margin-bottom:14px; color:#eaf6ff; }
 .gen-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-.gen-row select, .gen-row input { padding:10px 12px; border:1.5px solid #e0e0e0; border-radius:8px; font-size:14px; }
-.gen-row button { padding:10px 20px; background:#26b887; color:#fff; border:none; border-radius:8px; font-size:14px; cursor:pointer; }
+.gen-row select, .gen-row input { padding:10px 12px; border:1.5px solid var(--border); border-radius:8px; font-size:14px; background:rgba(0,0,0,.2); color:var(--text); }
+.gen-row button { padding:10px 20px; background:var(--green); color:#fff; border:none; border-radius:8px; font-size:14px; cursor:pointer; }
 table { width:100%; border-collapse:collapse; font-size:13px; }
-th, td { padding:10px 6px; text-align:left; border-bottom:1px solid #f0f0f0; vertical-align:middle; }
-th { color:#999; font-weight:500; white-space:nowrap; }
+th, td { padding:10px 6px; text-align:left; border-bottom:1px solid rgba(255,255,255,.06); vertical-align:middle; }
+th { color:var(--muted); font-weight:500; white-space:nowrap; }
 .badge { padding:2px 8px; border-radius:10px; font-size:11px; }
-.badge-active { background:#e8f8f0; color:#26b887; }
-.badge-expired { background:#fde8e8; color:#e74c3c; }
-.badge-revoked { background:#eee; color:#999; }
-.badge-unused { background:#fff8e1; color:#f57c00; }
+.badge-active { background:rgba(38,184,135,.18); color:#39ff88; }
+.badge-expired { background:rgba(231,76,60,.16); color:#ff7a6a; }
+.badge-revoked { background:rgba(120,130,150,.16); color:#9aa4b5; }
+.badge-unused { background:rgba(245,124,0,.16); color:#ffb74d; }
 .btn { padding:4px 8px; border:none; border-radius:5px; font-size:12px; cursor:pointer; margin:1px; }
 .btn-revoke { background:#e74c3c; color:#fff; }
 .btn-reactivate { background:#3b82f6; color:#fff; }
-.btn-copy { background:#e8f8f0; color:#26b887; border:1px solid #26b887; }
+.btn-copy { background:rgba(38,184,135,.18); color:#39ff88; border:1px solid var(--green); }
 .key-text { font-family:monospace; font-size:12px; }
-.remaining { font-size:11px; color:#999; }
+.remaining { font-size:11px; color:var(--muted); }
 .dur-adjust { display:flex; gap:4px; align-items:center; }
-.dur-adjust input { width:60px; padding:4px; border:1px solid #ddd; border-radius:4px; font-size:12px; text-align:center; }
+.dur-adjust input { width:60px; padding:4px; border:1px solid var(--border); border-radius:4px; font-size:12px; text-align:center; background:rgba(0,0,0,.2); color:var(--text); }
 .dur-adjust button { padding:4px 8px; font-size:11px; border:none; border-radius:4px; cursor:pointer; }
-.note-input { width:100%; padding:4px 6px; border:1px solid #e0e0e0; border-radius:4px; font-size:12px; }
-.dur-text { font-size:12px; color:#555; }
+.note-input { width:100%; padding:4px 6px; border:1px solid var(--border); border-radius:4px; font-size:12px; background:rgba(0,0,0,.2); color:var(--text); }
+.dur-text { font-size:12px; color:var(--text); }
 .copy-toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:8px 20px; border-radius:8px; font-size:14px; display:none; }
+.dot-today { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; }
+.dot-used { background:#39ff88; box-shadow:0 0 8px #39ff88; }
+.dot-unused { background:#4a5568; }
+.drag-handle { cursor:grab; color:var(--muted); font-size:16px; }
+.stat-row { display:flex; gap:16px; flex-wrap:wrap; margin-bottom:16px; }
+.stat-card { flex:1; min-width:120px; background:var(--panel); backdrop-filter:blur(14px); border:1px solid var(--border); border-radius:12px; padding:14px; }
+.stat-label { color:var(--muted); font-size:12px; margin-bottom:4px; }
+.stat-value { font-size:26px; font-weight:600; }
+.usage-detail td { background:rgba(0,229,255,.05); }
 </style>
 </head>
 <body>
@@ -51,6 +81,11 @@ th { color:#999; font-weight:500; white-space:nowrap; }
 </div>
 <div id="adminView" class="admin-panel">
   <h1>卡密管理 <button onclick="logout()" style="float:right;font-size:13px;padding:6px 16px;background:#999;">退出</button></h1>
+  <div class="stat-row">
+    <div class="stat-card"><div class="stat-label">今日使用人数</div><div class="stat-value" id="statToday" style="color:#39ff88;">0</div></div>
+    <div class="stat-card"><div class="stat-label">总卡密数</div><div class="stat-value" id="statTotal">0</div></div>
+    <div class="stat-card"><div class="stat-label">今日新增</div><div class="stat-value" id="statNew" style="color:var(--neon);">0</div></div>
+  </div>
   <div class="card">
     <h3>生成新卡密</h3>
     <div class="gen-row">
@@ -76,17 +111,20 @@ th { color:#999; font-weight:500; white-space:nowrap; }
   <div class="card">
     <h3>卡密列表 (<span id="keyCount">0</span>)
       <button onclick="loadKeys()" style="float:right;padding:6px 14px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">刷新</button>
-      <button onclick="batchDelete()" style="float:right;padding:6px 14px;background:#7f1d1d;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;">批量删除选中</button>
+      <button onclick="batchDelete()" style="float:right;padding:6px 14px;background:#7f1d1d;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">批量删除选中</button>
+      <button onclick="batchRevoke()" style="float:right;padding:6px 14px;background:#e74c3c;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">批量停用</button>
+      <button onclick="batchReactivate()" style="float:right;padding:6px 14px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">批量恢复</button>
     </h3>
     <div style="overflow-x:auto;">
     <table>
-      <thead><tr><th><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"></th><th>卡密</th><th>时长</th><th>状态</th><th>剩余</th><th>调时长</th><th>备注</th><th>操作</th></tr></thead>
+      <thead><tr><th><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"></th><th>卡密</th><th>今天使用</th><th>时长</th><th>状态</th><th>剩余</th><th>调时长</th><th>备注</th><th>操作</th></tr></thead>
       <tbody id="keyTable"></tbody>
     </table>
     </div>
   </div>
 </div>
 <div class="copy-toast" id="copyToast">已复制</div>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
 const API = 'https://xuexin-web-nhjqyrudaq.cn-hangzhou.fcapp.run';
 let authToken = localStorage.getItem('admin_token') || '';
@@ -218,6 +256,46 @@ function copyKey(key) {
   });
 }
 
+function isToday(ts) {
+  if (!ts) return false;
+  const d = new Date(ts), t = new Date();
+  return d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth() && d.getDate() === t.getDate();
+}
+
+function fmtTime(ts) {
+  const d = new Date(ts);
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+async function toggleUsage(key, btn) {
+  const tr = btn.closest('tr');
+  let detail = tr.nextElementSibling;
+  if (detail && detail.classList.contains('usage-detail')) {
+    detail.remove(); return;
+  }
+  const res = await fetch(`${API}/admin/keys/${encodeURIComponent(key)}/usage`, { headers: authHeaders() });
+  const data = await res.json();
+  const list = (data.usages || []).map(u => fmtTime(u.ts)).join(' · ');
+  detail = document.createElement('tr');
+  detail.className = 'usage-detail';
+  detail.innerHTML = `<td colspan="9" style="padding:10px 16px;color:var(--muted);">使用时间：${list || '暂无记录'}</td>`;
+  tr.after(detail);
+}
+
+function initDragSort() {
+  const tbody = document.getElementById('keyTable');
+  if (window._sortable) window._sortable.destroy();
+  window._sortable = Sortable.create(tbody, {
+    draggable: 'tr[data-key]',
+    handle: '.drag-handle',
+    onEnd: async () => {
+      const keys = Array.from(tbody.querySelectorAll('tr[data-key]')).map(tr => tr.dataset.key);
+      await fetch(`${API}/admin/keys/reorder`, { method:'POST', headers:authHeaders(), body: JSON.stringify({ keys }) });
+    }
+  });
+}
+
 async function loadKeys() {
   try {
     const res = await fetch(`${API}/admin/keys`, {
@@ -230,6 +308,10 @@ async function loadKeys() {
     }
     const keys = data.keys || [];
     document.getElementById('keyCount').textContent = keys.length;
+    // 更新统计
+    document.getElementById('statTotal').textContent = keys.length;
+    document.getElementById('statToday').textContent = keys.filter(k => isToday(k.last_used_at)).length;
+    document.getElementById('statNew').textContent = keys.filter(k => isToday(k.created_at)).length;
     const tbody = document.getElementById('keyTable');
     tbody.innerHTML = '';
     keys.forEach(k => {
@@ -262,9 +344,12 @@ async function loadKeys() {
         actions += `<button class="btn btn-reactivate" onclick="reactivateKey('${k.key}')">恢复</button>`;
       }
       actions += `<button class="btn" style="background:#7f1d1d;color:#fff;" onclick="deleteKey('${k.key}')">彻底删除</button>`;
-      tbody.innerHTML += `<tr>
-        <td><input type="checkbox" class="key-checkbox" value="${k.key}"></td>
+      actions += `<button class="btn" style="background:var(--neon);color:#000;" onclick="toggleUsage('${k.key}', this)">展开</button>`;
+      const usedToday = isToday(k.last_used_at);
+      tbody.innerHTML += `<tr data-key="${k.key}">
+        <td><span class="drag-handle">⠿</span> <input type="checkbox" class="key-checkbox" value="${k.key}"></td>
         <td class="key-text">${k.key}</td>
+        <td><span class="dot-today ${usedToday ? 'dot-used' : 'dot-unused'}"></span>${usedToday ? '已使用' : '未使用'}</td>
         <td><span class="dur-text">${durText}</span></td>
         <td><span class="badge ${badge}">${status}</span></td>
         <td class="remaining">${remaining}</td>
@@ -273,6 +358,7 @@ async function loadKeys() {
         <td>${actions}</td>
       </tr>`;
     });
+    initDragSort();
   } catch (e) {
     alert('网络错误：' + e.message);
   }
@@ -378,6 +464,30 @@ async function batchDelete() {
   } catch (e) {
     alert('网络错误：' + e.message);
   }
+}
+
+function getCheckedKeys() {
+  return Array.from(document.querySelectorAll('.key-checkbox:checked')).map(cb => cb.value);
+}
+
+async function batchRevoke() {
+  const keys = getCheckedKeys();
+  if (!keys.length) return alert('请先勾选');
+  if (!confirm('确定停用选中的 ' + keys.length + ' 条卡密？')) return;
+  for (const key of keys) {
+    await fetch(`${API}/admin/keys/${encodeURIComponent(key)}`, { method:'PATCH', headers:authHeaders(), body: JSON.stringify({ is_revoked: true }) });
+  }
+  loadKeys();
+}
+
+async function batchReactivate() {
+  const keys = getCheckedKeys();
+  if (!keys.length) return alert('请先勾选');
+  if (!confirm('确定恢复选中的 ' + keys.length + ' 条卡密？（会清除设备绑定和激活时间）')) return;
+  for (const key of keys) {
+    await fetch(`${API}/admin/keys/${encodeURIComponent(key)}`, { method:'PATCH', headers:authHeaders(), body: JSON.stringify({ is_revoked: false, device_id: '', activated_at: 0 }) });
+  }
+  loadKeys();
 }
 
 // 页面加载时如果有 token 自动登录
