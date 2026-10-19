@@ -248,6 +248,10 @@ function toMs(v) {
     return v;
 }
 
+function escapeHtml(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 function copyKey(key) {
   navigator.clipboard.writeText(key).then(() => {
     const t = document.getElementById('copyToast');
@@ -258,12 +262,12 @@ function copyKey(key) {
 
 function isToday(ts) {
   if (!ts) return false;
-  const d = new Date(ts), t = new Date();
+  const d = new Date(toMs(ts)), t = new Date();
   return d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth() && d.getDate() === t.getDate();
 }
 
 function fmtTime(ts) {
-  const d = new Date(ts);
+  const d = new Date(toMs(ts));
   const p = n => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
@@ -291,7 +295,12 @@ function initDragSort() {
     handle: '.drag-handle',
     onEnd: async () => {
       const keys = Array.from(tbody.querySelectorAll('tr[data-key]')).map(tr => tr.dataset.key);
-      await fetch(`${API}/admin/keys/reorder`, { method:'POST', headers:authHeaders(), body: JSON.stringify({ keys }) });
+      try {
+        const res = await fetch(`${API}/admin/keys/reorder`, { method:'POST', headers:authHeaders(), body: JSON.stringify({ keys }) });
+        if (!res.ok) alert('排序保存失败');
+      } catch (e) {
+        alert('网络错误：' + e.message);
+      }
     }
   });
 }
@@ -354,10 +363,11 @@ async function loadKeys() {
         <td><span class="badge ${badge}">${status}</span></td>
         <td class="remaining">${remaining}</td>
         <td>${durHtml}</td>
-        <td><input class="note-input" id="note_${k.key}" value="${note}" placeholder="备注..." onchange="saveNote('${k.key}', this.value)"></td>
+        <td><input class="note-input" id="note_${k.key}" value="${escapeHtml(note)}" placeholder="备注..." onchange="saveNote('${k.key}', this.value)"></td>
         <td>${actions}</td>
       </tr>`;
     });
+    document.getElementById('selectAll').checked = false;
     initDragSort();
   } catch (e) {
     alert('网络错误：' + e.message);
@@ -366,7 +376,7 @@ async function loadKeys() {
 
 function startAutoRefresh() {
     if (window._refreshTimer) clearInterval(window._refreshTimer);
-    window._refreshTimer = setInterval(loadKeys, 15000); // 每 15 秒自动刷新一次
+    window._refreshTimer = setInterval(loadKeys, 60000); // 每 60 秒自动刷新一次
 }
 
 async function adjustDur(key, op) {
@@ -398,11 +408,16 @@ async function adjustDur(key, op) {
 }
 
 async function saveNote(key, note) {
-  await fetch(`${API}/admin/keys/${encodeURIComponent(key)}`, {
-    method: 'PATCH',
-    headers: authHeaders(),
-    body: JSON.stringify({ note })
-  });
+  try {
+    const res = await fetch(`${API}/admin/keys/${encodeURIComponent(key)}`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify({ note })
+    });
+    if (!res.ok) alert('备注保存失败');
+  } catch (e) {
+    alert('网络错误：' + e.message);
+  }
 }
 
 async function revokeKey(key) {
@@ -474,8 +489,12 @@ async function batchRevoke() {
   const keys = getCheckedKeys();
   if (!keys.length) return alert('请先勾选');
   if (!confirm('确定停用选中的 ' + keys.length + ' 条卡密？')) return;
-  for (const key of keys) {
-    await fetch(`${API}/admin/keys/${encodeURIComponent(key)}`, { method:'PATCH', headers:authHeaders(), body: JSON.stringify({ is_revoked: true }) });
+  try {
+    for (const key of keys) {
+      await fetch(`${API}/admin/keys/${encodeURIComponent(key)}`, { method:'PATCH', headers:authHeaders(), body: JSON.stringify({ is_revoked: true }) });
+    }
+  } catch (e) {
+    alert('网络错误：' + e.message);
   }
   loadKeys();
 }
@@ -484,8 +503,12 @@ async function batchReactivate() {
   const keys = getCheckedKeys();
   if (!keys.length) return alert('请先勾选');
   if (!confirm('确定恢复选中的 ' + keys.length + ' 条卡密？（会清除设备绑定和激活时间）')) return;
-  for (const key of keys) {
-    await fetch(`${API}/admin/keys/${encodeURIComponent(key)}`, { method:'PATCH', headers:authHeaders(), body: JSON.stringify({ is_revoked: false, device_id: '', activated_at: 0 }) });
+  try {
+    for (const key of keys) {
+      await fetch(`${API}/admin/keys/${encodeURIComponent(key)}`, { method:'PATCH', headers:authHeaders(), body: JSON.stringify({ is_revoked: false, device_id: '', activated_at: 0 }) });
+    }
+  } catch (e) {
+    alert('网络错误：' + e.message);
   }
   loadKeys();
 }
