@@ -374,32 +374,34 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 key = self.path.split('/')[-1]
                 if key in valid_keys:
+                    # 更新内存
                     if 'is_revoked' in data:
                         valid_keys[key]['is_revoked'] = data['is_revoked']
-                        # 同步到 OTS
-                        if ots_client:
-                            try:
-                                ots_client.update_row(
-                                    table_name='keys',
-                                    primary_key=[('key', key)],
-                                    update_of_attribute_columns=[('is_revoked', data['is_revoked'])]
-                                )
-                            except Exception as e:
-                                print(f'更新 OTS 失败: {e}')
                     if 'duration_hours' in data:
                         valid_keys[key]['duration_hours'] = data['duration_hours']
                     if 'note' in data:
                         valid_keys[key]['note'] = data['note']
-                        # 同步到 OTS
-                        if ots_client:
-                            try:
-                                ots_client.update_row(
-                                    table_name='keys',
-                                    primary_key=[('key', key)],
-                                    update_of_attribute_columns=[('note', data['note'])]
-                                )
-                            except Exception as e:
-                                print(f'更新备注到 OTS 失败: {e}')
+                    
+                    # 同步到 OTS（用 put_row 覆盖写入完整数据）
+                    if ots_client:
+                        try:
+                            k = valid_keys[key]
+                            row = Row(
+                                primary_key=[('key', key)],
+                                attribute_columns=[
+                                    ('duration_hours', k.get('duration_hours', 0)),
+                                    ('device_id', k.get('device_id', '')),
+                                    ('activated_at', k.get('activated_at', 0)),
+                                    ('is_revoked', k.get('is_revoked', False)),
+                                    ('created_at', k.get('created_at', 0)),
+                                    ('last_used_at', k.get('last_used_at', 0)),
+                                    ('note', k.get('note', '')),
+                                    ('sort_order', k.get('sort_order', 0))
+                                ]
+                            )
+                            ots_client.put_row(table_name='keys', row=row)
+                        except Exception as e:
+                            print(f'更新 OTS 失败: {e}')
                     result = {'ok': True}
                 else:
                     result = {'ok': False, 'error': '卡密不存在'}
