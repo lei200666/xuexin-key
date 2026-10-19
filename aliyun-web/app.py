@@ -390,6 +390,16 @@ class Handler(BaseHTTPRequestHandler):
                         valid_keys[key]['duration_hours'] = data['duration_hours']
                     if 'note' in data:
                         valid_keys[key]['note'] = data['note']
+                        # 同步到 OTS
+                        if ots_client:
+                            try:
+                                ots_client.update_row(
+                                    table_name='keys',
+                                    primary_key=[('key', key)],
+                                    update_of_attribute_columns=[('note', data['note'])]
+                                )
+                            except Exception as e:
+                                print(f'更新备注到 OTS 失败: {e}')
                     result = {'ok': True}
                 else:
                     result = {'ok': False, 'error': '卡密不存在'}
