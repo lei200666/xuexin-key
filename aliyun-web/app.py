@@ -321,7 +321,7 @@ class Handler(BaseHTTPRequestHandler):
                                     ('device_id', ''),
                                     ('activated_at', 0),
                                     ('is_revoked', False),
-                                    ('created_at', int(datetime.now().timestamp() * 1000)),
+                                    ('created_at', int(datetime.now().timestamp())),
                                     ('sort_order', 0),
                                     ('note', '')
                                 ]
@@ -336,7 +336,7 @@ class Handler(BaseHTTPRequestHandler):
                         'duration_hours': duration_hours,
                         'activated_at': 0,
                         'is_revoked': False,
-                        'created_at': int(datetime.now().timestamp() * 1000),
+                        'created_at': int(datetime.now().timestamp()),
                         'note': ''
                     }
                     result = {'ok': True, 'key': new_key}
