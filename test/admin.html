@@ -120,7 +120,7 @@ th { color:var(--muted); font-weight:500; white-space:nowrap; }
     </h3>
     <div style="overflow-x:auto;">
     <table>
-      <thead><tr><th><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"></th><th>卡密</th><th>今天使用</th><th>时长</th><th>状态</th><th>剩余</th><th>调时长</th><th>备注</th><th>操作</th></tr></thead>
+      <thead><tr><th><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"></th><th>卡密</th><th>今天使用</th><th>时长</th><th>状态</th><th>剩余</th><th>最后使用</th><th>调时长</th><th>备注</th><th>操作</th></tr></thead>
       <tbody id="keyTable"></tbody>
     </table>
     </div>
@@ -356,21 +356,6 @@ function fmtTime(ts) {
   return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-async function toggleUsage(key, btn) {
-  const tr = btn.closest('tr');
-  let detail = tr.nextElementSibling;
-  if (detail && detail.classList.contains('usage-detail')) {
-    detail.remove(); return;
-  }
-  const res = await fetch(`${API}/admin/keys/${encodeURIComponent(key)}/usage`, { headers: authHeaders() });
-  const data = await res.json();
-  const list = (data.usages || []).map(u => fmtTime(u.ts)).join(' · ');
-  detail = document.createElement('tr');
-  detail.className = 'usage-detail';
-  detail.innerHTML = `<td colspan="9" style="padding:10px 16px;color:var(--muted);">使用时间：${list || '暂无记录'}</td>`;
-  tr.after(detail);
-}
-
 function initDragSort() {
   const tbody = document.getElementById('keyTable');
   if (window._sortable) window._sortable.destroy();
@@ -437,8 +422,8 @@ async function loadKeys() {
         actions += `<button class="btn btn-reactivate" onclick="reactivateKey('${k.key}')">恢复</button>`;
       }
       actions += `<button class="btn" style="background:#7f1d1d;color:#fff;" onclick="deleteKey('${k.key}')">彻底删除</button>`;
-      actions += `<button class="btn" style="background:var(--neon);color:#000;" onclick="toggleUsage('${k.key}', this)">展开</button>`;
       const usedToday = isToday(k.last_used_at);
+      const lastUsedText = k.last_used_at ? fmtDateTime(k.last_used_at) : '从未';
       tbody.innerHTML += `<tr data-key="${k.key}">
         <td><span class="drag-handle">⠿</span> <input type="checkbox" class="key-checkbox" value="${k.key}"></td>
         <td class="key-text">${k.key}</td>
@@ -446,6 +431,7 @@ async function loadKeys() {
         <td><span class="dur-text">${durText}</span></td>
         <td><span class="badge ${badge}">${status}</span></td>
         <td class="remaining">${remaining}</td>
+        <td class="last-used">${lastUsedText}</td>
         <td>${durHtml}</td>
         <td><input class="note-input" id="note_${k.key}" value="${escapeHtml(note)}" placeholder="备注..." onchange="saveNote('${k.key}', this.value)"></td>
         <td>${actions}</td>
@@ -464,9 +450,7 @@ function startAutoRefresh() {
         // 正在编辑（输入框有焦点）时跳过
         const active = document.activeElement;
         const editing = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable);
-        // 有展开的使用历史时跳过
-        const hasExpanded = !!document.querySelector('.usage-detail');
-        if (!editing && !hasExpanded) {
+        if (!editing) {
             loadKeys();
         }
     }, 60000); // 每 60 秒自动刷新一次

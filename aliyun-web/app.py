@@ -329,6 +329,14 @@ class Handler(BaseHTTPRequestHandler):
 
             now_ts = int(datetime.now().timestamp())
 
+            # 过期检查（已激活、非永久卡密才判断）
+            duration = key_data.get('duration_hours', -1)
+            activated = key_data.get('activated_at', 0)
+            if duration is not None and duration != -1 and activated:
+                if now_ts > activated + duration * 3600:
+                    self.send_json({'ok': False, 'error': '卡密已过期'})
+                    return
+
             # 首次激活
             if not key_data.get('device_id') and device_id:
                 key_data['device_id'] = device_id
@@ -339,8 +347,7 @@ class Handler(BaseHTTPRequestHandler):
             # 写回 keys 表
             put_key(key_data)
 
-            # 写使用记录
-            add_usage_record(key, now_ts, device_id)
+            # 不再写 key_usage 使用记录（只保留 last_used_at 即可）
 
             self.send_json({'ok': True})
 
