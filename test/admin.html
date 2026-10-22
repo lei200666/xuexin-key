@@ -378,6 +378,13 @@ function initDragSort() {
 }
 
 async function loadKeys() {
+  // 显示加载中
+  const btn = document.querySelector('button[onclick="loadKeys()"]');
+  if (btn) {
+    btn.textContent = '加载中...';
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+  }
   try {
     const res = await fetch(`${API}/admin/keys`, {
       headers: authHeaders()
@@ -444,6 +451,14 @@ async function loadKeys() {
     initDragSort();
   } catch (e) {
     alert('网络错误：' + e.message);
+  } finally {
+    // 恢复刷新按钮
+    const btn = document.querySelector('button[onclick="loadKeys()"]');
+    if (btn) {
+      btn.textContent = '刷新';
+      btn.disabled = false;
+      btn.style.opacity = '1';
+    }
   }
 }
 
