@@ -161,7 +161,6 @@ async function login() {
     document.getElementById('loginView').style.display = 'none';
     document.getElementById('adminView').style.display = 'block';
     loadKeys();
-    startAutoRefresh();
   } catch (e) {
     errEl.textContent = '网络错误：' + e.message;
   }
@@ -599,7 +598,6 @@ if (authToken) {
   document.getElementById('loginView').style.display = 'none';
   document.getElementById('adminView').style.display = 'block';
   loadKeys();
-  startAutoRefresh();
 }
 </script>
 </body>
