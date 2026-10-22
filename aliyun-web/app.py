@@ -16,7 +16,6 @@ ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '')
 ADMIN_TOKEN = os.environ.get('ADMIN_TOKEN', '')
 
 KEYS_TABLE = 'keys'
-USAGE_TABLE = 'key_usage'
 
 # 初始化 OTS 客户端
 ots_client = None
@@ -115,37 +114,6 @@ def delete_key(key):
     ots_client.delete_row(table_name=KEYS_TABLE, row=row_delete, condition=condition)
 
 
-def get_usage_records(key, limit=200):
-    """查询某张卡密的使用记录"""
-    response = ots_client.get_range(
-        table_name=USAGE_TABLE,
-        direction='FORWARD',
-        inclusive_start_primary_key=[('key', key), ('ts', 0)],
-        exclusive_end_primary_key=[('key', key), ('ts', 9999999999999)],
-        limit=limit
-    )
-    rows = response[2]
-    records = []
-    for row in rows:
-        ts = row.primary_key[1][1]
-        device_id = ''
-        for col in row.attribute_columns:
-            if col[0] == 'device_id':
-                device_id = col[1]
-        records.append({'ts': ts, 'device_id': device_id})
-    records.sort(key=lambda x: x['ts'], reverse=True)
-    return records
-
-
-def add_usage_record(key, ts, device_id):
-    """添加一条使用记录"""
-    row = Row(
-        primary_key=[('key', key), ('ts', ts)],
-        attribute_columns=[('device_id', device_id)]
-    )
-    ots_client.put_row(table_name=USAGE_TABLE, row=row)
-
-
 # ========== HTTP 处理器 ==========
 
 class Handler(BaseHTTPRequestHandler):
@@ -167,6 +135,9 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(result).encode())
 
     def check_auth(self):
+        # 环境变量没配好时一律拒绝（fail-closed）
+        if not ADMIN_TOKEN:
+            return False
         auth = self.headers.get('Authorization', '')
         return auth == 'Bearer ' + ADMIN_TOKEN
 
@@ -181,19 +152,7 @@ class Handler(BaseHTTPRequestHandler):
     # ========== GET ==========
 
     def do_GET(self):
-        if self.path.startswith('/admin/keys/') and self.path.endswith('/usage'):
-            if not self.check_auth():
-                self.send_json({'ok': False, 'error': '未授权'})
-                return
-            parts = self.path.split('/')
-            key = parts[3]
-            try:
-                records = get_usage_records(key) if ots_client else []
-                self.send_json({'ok': True, 'usages': records})
-            except Exception as e:
-                self.send_json({'ok': False, 'error': f'查询使用记录失败: {str(e)}'})
-
-        elif self.path == '/admin/keys':
+        if self.path == '/admin/keys':
             if not self.check_auth():
                 self.send_json({'ok': False, 'error': '未授权'})
                 return
@@ -213,7 +172,9 @@ class Handler(BaseHTTPRequestHandler):
 
         if self.path == '/admin/login':
             password = data.get('password', '')
-            if password == ADMIN_PASSWORD:
+            if not ADMIN_PASSWORD or not ADMIN_TOKEN:
+                self.send_json({'ok': False, 'error': '服务未配置管理员凭据'})
+            elif password == ADMIN_PASSWORD:
                 self.send_json({'ok': True, 'token': ADMIN_TOKEN})
             else:
                 self.send_json({'ok': False, 'error': '密码错误'})
@@ -266,6 +227,11 @@ class Handler(BaseHTTPRequestHandler):
                     put_columns.append(('duration_hours', data['duration_hours']))
                 if 'note' in data:
                     put_columns.append(('note', data['note']))
+                # 恢复功能需要：清空设备绑定和激活时间
+                if 'device_id' in data:
+                    put_columns.append(('device_id', data['device_id']))
+                if 'activated_at' in data:
+                    put_columns.append(('activated_at', data['activated_at']))
 
                 if put_columns:
                     row_update = Row(

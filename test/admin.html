@@ -266,6 +266,10 @@ function getDurText(k) {
 function getStatusText(k) {
   if (k.is_revoked) return '已停用';
   if (!k.device_id) return '未使用';
+  if (k.duration_hours !== -1 && k.activated_at) {
+    const expire = toMs(k.activated_at) + k.duration_hours * 3600 * 1000;
+    if (expire <= Date.now()) return '已过期';
+  }
   return '使用中';
 }
 
