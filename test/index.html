@@ -526,7 +526,7 @@
                     
                     <div class="basic-info">
                         <h2 id="name" class="name">XXX</h2>
-                        <p id="gender-birth" class="gender-birth"><span class="gender">男</span>2006年08月01日</p>
+                        <p class="gender-birth"><span id="gender" class="gender">男</span><span id="birth" class="birth">2006年08月01日</span></p>
                     </div>
                 </div>
                 
@@ -746,7 +746,7 @@
         let isLocked = true;
 
         const editableElements = [
-            'name', 'gender-birth', 'school', 'major-name',
+            'name', 'gender', 'birth', 'school', 'major-name',
             'nation', 'id-number', 'study-period', 'education-type',
             'campus', 'department', 'class-name', 'student-id',
             'enrollment-date', 'status', 'graduation-date',
@@ -965,6 +965,17 @@
 
             const text = data.text || {};
             const photos = data.photos || {};
+
+            // 老数据迁移：以前性别+生日合存在 gender-birth 一个字段里，自动拆成 gender / birth
+            if (text['gender-birth'] !== undefined && text['gender'] === undefined && text['birth'] === undefined) {
+                const combined = String(text['gender-birth']).trim();
+                const m = combined.match(/^([男女])\s*(.*)$/);
+                if (m) {
+                    text['gender'] = m[1];
+                    text['birth'] = m[2];
+                }
+            }
+
             editableElements.forEach(id => {
                 const el = document.getElementById(id);
                 if (el && text[id] !== undefined) el.innerText = text[id];
