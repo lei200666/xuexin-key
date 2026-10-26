@@ -745,6 +745,25 @@
         let isEditable = false;
         let isLocked = true;
 
+        // 性别：点一下切换 男 <-> 女
+        function toggleGender() {
+            if (!isEditable || isLocked) return;
+            const el = document.getElementById('gender') || document.querySelector('.gender');
+            if (!el) return;
+            const cur = (el.innerText || '').trim();
+            el.innerText = (cur === '男') ? '女' : '男';
+            saveData();
+        }
+
+        const _genderEl = document.getElementById('gender') || document.querySelector('.gender');
+        if (_genderEl) {
+            _genderEl.addEventListener('click', function (e) {
+                if (!isEditable || isLocked) return;
+                e.preventDefault();
+                toggleGender();
+            });
+        }
+
         const editableElements = [
             'name', 'gender', 'birth', 'school', 'major-name',
             'nation', 'id-number', 'study-period', 'education-type',
@@ -795,6 +814,10 @@
                 el.addEventListener('input', saveData);
                 el.addEventListener('blur', saveData);
             });
+
+            // 性别用"点击切换"，不进入文字编辑
+            const genderEl = document.getElementById('gender') || document.querySelector('.gender');
+            if (genderEl) genderEl.contentEditable = false;
 
             const admissionPhoto = document.getElementById('admission-photo');
             const educationPhoto = document.getElementById('education-photo');
