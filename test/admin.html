@@ -131,7 +131,7 @@ th { color:var(--muted); font-weight:500; white-space:nowrap; }
     </div>
     <div style="overflow-x:auto;">
     <table>
-      <thead><tr><th><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"></th><th>卡密</th><th>类别</th><th>今天使用</th><th>时长</th><th>状态</th><th>剩余</th><th>最后使用</th><th>调时长</th><th>备注</th><th>操作</th></tr></thead>
+      <thead><tr><th><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"></th><th>卡密</th><th>今天使用</th><th>时长</th><th>状态</th><th>剩余</th><th>最后使用</th><th>调时长</th><th>备注</th><th>操作</th></tr></thead>
       <tbody id="keyTable"></tbody>
     </table>
     </div>
@@ -476,7 +476,6 @@ async function loadKeys() {
       tbody.innerHTML += `<tr data-key="${k.key}">
         <td><span class="drag-handle">⠿</span> <input type="checkbox" class="key-checkbox" value="${k.key}"></td>
         <td class="key-text">${k.key}</td>
-        <td><span style="padding:2px 8px;border-radius:4px;font-size:12px;${catBadge}">${catText}</span></td>
         <td><span class="dot-today ${usedToday ? 'dot-used' : 'dot-unused'}"></span>${usedToday ? '已使用' : '未使用'}</td>
         <td><span class="dur-text">${durText}</span></td>
         <td><span class="badge ${badge}">${status}</span></td>
