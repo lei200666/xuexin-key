@@ -119,6 +119,7 @@ th { color:var(--muted); font-weight:500; white-space:nowrap; }
       <button onclick="batchDelete()" style="float:right;padding:6px 14px;background:#7f1d1d;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">批量删除选中</button>
       <button onclick="batchRevoke()" style="float:right;padding:6px 14px;background:#e74c3c;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">批量停用</button>
       <button onclick="batchReactivate()" style="float:right;padding:6px 14px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">批量恢复</button>
+      <button onclick="batchCopyKeys()" style="float:right;padding:6px 14px;background:#8b5cf6;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">批量复制</button>
       <button onclick="exportKeys()" style="float:right;padding:6px 14px;background:#26b887;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">导出卡密</button>
       <button onclick="document.getElementById('importFile').click()" style="float:right;padding:6px 14px;background:#f59e0b;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">导入卡密</button>
       <input type="file" id="importFile" accept=".json,application/json" style="display:none;" onchange="importKeys(this)">
@@ -631,6 +632,25 @@ async function batchRevoke() {
     alert('网络错误：' + e.message);
   }
   loadKeys();
+}
+
+async function batchCopyKeys() {
+  const keys = getCheckedKeys();
+  if (!keys.length) return alert('请先勾选要复制的卡密');
+  const text = keys.join('\n');
+  try {
+    await navigator.clipboard.writeText(text);
+    alert('已复制 ' + keys.length + ' 张卡密到剪贴板');
+  } catch (e) {
+    // 降级方案
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    alert('已复制 ' + keys.length + ' 张卡密到剪贴板');
+  }
 }
 
 async function batchReactivate() {
