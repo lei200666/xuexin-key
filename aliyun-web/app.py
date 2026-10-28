@@ -101,7 +101,8 @@ def put_key(key_data):
             ('created_at', key_data.get('created_at', 0)),
             ('last_used_at', key_data.get('last_used_at', 0)),
             ('note', key_data.get('note', '')),
-            ('sort_order', key_data.get('sort_order', 0))
+            ('sort_order', key_data.get('sort_order', 0)),
+            ('category', key_data.get('category', 'mine'))
         ]
     )
     ots_client.put_row(table_name=KEYS_TABLE, row=row)
@@ -232,6 +233,10 @@ class Handler(BaseHTTPRequestHandler):
                     put_columns.append(('device_id', data['device_id']))
                 if 'activated_at' in data:
                     put_columns.append(('activated_at', data['activated_at']))
+                if 'last_used_at' in data:
+                    put_columns.append(('last_used_at', data['last_used_at']))
+                if 'category' in data:
+                    put_columns.append(('category', data['category']))
 
                 if put_columns:
                     row_update = Row(
@@ -321,69 +326,71 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json({'ok': False, 'error': f'验证失败: {str(e)}'})
 
     def handle_gen_key(self, data):
-        """生成卡密"""
+        """生成卡密（支持批量 count 和分类 category）"""
         duration_hours = data.get('duration_hours', -1)
+        count = int(data.get('count', 1) or 1)
+        count = max(1, min(count, 100))
+        category = data.get('category', 'mine')
+        if category not in ('batch', 'mine'):
+            category = 'mine'
         custom_key = data.get('key', '').strip().upper()
+        # 自定义卡密只允许单张；多张时忽略自定义
+        if count > 1 and custom_key:
+            custom_key = ''
 
         try:
-            if custom_key:
-                # 自定义格式校验
-                if not re.match(r'^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$', custom_key):
-                    self.send_json({'ok': False, 'error': '卡密格式错误，应为 XXXX-XXXX-XXXX（4-4-4，字母或数字）'})
-                    return
-                new_key = custom_key
-            else:
-                # 自动生成
-                chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-                for _ in range(10):
-                    key_parts = [
-                        ''.join(secrets.choice(chars) for _ in range(4))
-                        for _ in range(3)
-                    ]
-                    new_key = '-'.join(key_parts)
-                    if not get_one_key(new_key):
-                        break
+            keys = []
+            for i in range(count):
+                if custom_key and i == 0:
+                    # 自定义格式校验
+                    if not re.match(r'^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$', custom_key):
+                        self.send_json({'ok': False, 'error': '卡密格式错误，应为 XXXX-XXXX-XXXX（4-4-4，字母或数字）'})
+                        return
+                    new_key = custom_key
                 else:
-                    self.send_json({'ok': False, 'error': '生成卡密失败，请重试'})
-                    return
+                    # 自动生成
+                    chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+                    for _ in range(10):
+                        key_parts = [
+                            ''.join(secrets.choice(chars) for _ in range(4))
+                            for _ in range(3)
+                        ]
+                        new_key = '-'.join(key_parts)
+                        if not get_one_key(new_key):
+                            break
+                    else:
+                        self.send_json({'ok': False, 'error': '生成卡密失败，请重试'})
+                        return
 
-            # 检查是否已存在
-            if get_one_key(new_key):
-                self.send_json({'ok': False, 'error': '卡密已存在，请换一个'})
-                return
+                # 检查是否已存在
+                if get_one_key(new_key):
+                    if custom_key and i == 0:
+                        self.send_json({'ok': False, 'error': '卡密已存在，请换一个'})
+                        return
+                    continue
 
-            now_ts = int(datetime.now().timestamp())
+                now_ts = int(datetime.now().timestamp())
 
-            key_data = {
-                'key': new_key,
-                'duration_hours': duration_hours,
-                'device_id': '',
-                'activated_at': 0,
-                'is_revoked': False,
-                'created_at': now_ts,
-                'last_used_at': 0,
-                'note': '',
-                'sort_order': 0
-            }
+                # 写入（不存在才写）
+                row = Row(
+                    primary_key=[('key', new_key)],
+                    attribute_columns=[
+                        ('duration_hours', duration_hours),
+                        ('device_id', ''),
+                        ('activated_at', 0),
+                        ('is_revoked', False),
+                        ('created_at', now_ts),
+                        ('last_used_at', 0),
+                        ('note', ''),
+                        ('sort_order', 0),
+                        ('category', category)
+                    ]
+                )
+                condition = Condition(RowExistenceExpectation.EXPECT_NOT_EXIST, None)
+                ots_client.put_row(table_name=KEYS_TABLE, row=row, condition=condition)
+                keys.append(new_key)
 
-            # 写入（不存在才写）
-            row = Row(
-                primary_key=[('key', new_key)],
-                attribute_columns=[
-                    ('duration_hours', duration_hours),
-                    ('device_id', ''),
-                    ('activated_at', 0),
-                    ('is_revoked', False),
-                    ('created_at', now_ts),
-                    ('last_used_at', 0),
-                    ('note', ''),
-                    ('sort_order', 0)
-                ]
-            )
-            condition = Condition(RowExistenceExpectation.EXPECT_NOT_EXIST, None)
-            ots_client.put_row(table_name=KEYS_TABLE, row=row, condition=condition)
-
-            self.send_json({'ok': True, 'key': new_key})
+            self.send_json({'ok': True, 'keys': keys, 'key': keys[0] if keys else ''})
 
         except Exception as e:
             self.send_json({'ok': False, 'error': f'保存卡密失败: {str(e)}'})

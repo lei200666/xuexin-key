@@ -97,6 +97,11 @@ th { color:var(--muted); font-weight:500; white-space:nowrap; }
         <option value="72">3天</option>
         <option value="168">7天</option>
       </select>
+      <input type="number" id="genCount" value="1" min="1" max="100" style="width:70px;padding:8px;border:1px solid #ddd;border-radius:6px;text-align:center;" title="生成数量">
+      <select id="genCategory">
+        <option value="batch">批量卡密</option>
+        <option value="mine" selected>我的卡密</option>
+      </select>
       <div style="flex:1;min-width:200px;display:flex;gap:4px;align-items:center;">
         <input id="key1" maxlength="4" placeholder="XXXX" autocomplete="off" style="width:60px;text-align:center;text-transform:uppercase;">
         <span style="color:#999;">-</span>
@@ -118,9 +123,15 @@ th { color:var(--muted); font-weight:500; white-space:nowrap; }
       <button onclick="document.getElementById('importFile').click()" style="float:right;padding:6px 14px;background:#f59e0b;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">导入卡密</button>
       <input type="file" id="importFile" accept=".json,application/json" style="display:none;" onchange="importKeys(this)">
     </h3>
+    <div style="margin-bottom:10px;display:flex;gap:8px;align-items:center;font-size:13px;">
+      <span style="color:#666;">筛选：</span>
+      <button id="filter-all" onclick="setCategoryFilter('all')" style="padding:4px 12px;border:1px solid #3b82f6;background:#3b82f6;color:#fff;border-radius:4px;cursor:pointer;">全部</button>
+      <button id="filter-batch" onclick="setCategoryFilter('batch')" style="padding:4px 12px;border:1px solid #ddd;background:#fff;color:#333;border-radius:4px;cursor:pointer;">批量卡密</button>
+      <button id="filter-mine" onclick="setCategoryFilter('mine')" style="padding:4px 12px;border:1px solid #ddd;background:#fff;color:#333;border-radius:4px;cursor:pointer;">我的卡密</button>
+    </div>
     <div style="overflow-x:auto;">
     <table>
-      <thead><tr><th><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"></th><th>卡密</th><th>今天使用</th><th>时长</th><th>状态</th><th>剩余</th><th>最后使用</th><th>调时长</th><th>备注</th><th>操作</th></tr></thead>
+      <thead><tr><th><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"></th><th>卡密</th><th>类别</th><th>今天使用</th><th>时长</th><th>状态</th><th>剩余</th><th>最后使用</th><th>调时长</th><th>备注</th><th>操作</th></tr></thead>
       <tbody id="keyTable"></tbody>
     </table>
     </div>
@@ -131,6 +142,26 @@ th { color:var(--muted); font-weight:500; white-space:nowrap; }
 <script>
 const API = 'https://xuexin-web-nhjqyrudaq.cn-hangzhou.fcapp.run';
 let authToken = localStorage.getItem('admin_token') || '';
+let categoryFilter = 'all';
+
+function setCategoryFilter(cat) {
+  categoryFilter = cat;
+  // 更新按钮样式
+  ['all', 'batch', 'mine'].forEach(c => {
+    const btn = document.getElementById('filter-' + c);
+    if (!btn) return;
+    if (c === cat) {
+      btn.style.background = '#3b82f6';
+      btn.style.color = '#fff';
+      btn.style.borderColor = '#3b82f6';
+    } else {
+      btn.style.background = '#fff';
+      btn.style.color = '#333';
+      btn.style.borderColor = '#ddd';
+    }
+  });
+  loadKeys();
+}
 
 function authHeaders() {
   return {
@@ -196,6 +227,8 @@ setupAutoJump();
 
 async function genKey() {
   const dur = parseInt(document.getElementById('durSelect').value);
+  const count = parseInt(document.getElementById('genCount').value) || 1;
+  const category = document.getElementById('genCategory').value;
   const k1 = document.getElementById('key1').value.trim().toUpperCase();
   const k2 = document.getElementById('key2').value.trim().toUpperCase();
   const k3 = document.getElementById('key3').value.trim().toUpperCase();
@@ -215,14 +248,15 @@ async function genKey() {
     const res = await fetch(`${API}/admin/keys`, {
       method: 'POST',
       headers: authHeaders(),
-      body: JSON.stringify({ duration_hours: dur, key: customKey })  // key 留空 → 后端自动生成
+      body: JSON.stringify({ duration_hours: dur, key: customKey, count: count, category: category })
     });
     const data = await res.json();
     if (!res.ok || !data.ok) {
       alert('生成失败：' + (data.error || '未知错误'));
       return;
     }
-    document.getElementById('genResult').textContent = '已生成: ' + data.key;
+    const keysArr = data.keys || (data.key ? [data.key] : []);
+    document.getElementById('genResult').textContent = '已生成 ' + keysArr.length + ' 张: ' + (keysArr[0] || '');
     document.getElementById('key1').value = '';
     document.getElementById('key2').value = '';
     document.getElementById('key3').value = '';
@@ -394,15 +428,20 @@ async function loadKeys() {
       alert('加载失败：' + (data.error || '未知错误'));
       return;
     }
-    const keys = data.keys || [];
+    const allKeys = data.keys || [];
+    // 按类别筛选
+    const keys = categoryFilter === 'all' ? allKeys : allKeys.filter(k => (k.category || 'mine') === categoryFilter);
     document.getElementById('keyCount').textContent = keys.length;
-    // 更新统计
-    document.getElementById('statTotal').textContent = keys.length;
-    document.getElementById('statToday').textContent = keys.filter(k => isToday(k.last_used_at)).length;
-    document.getElementById('statNew').textContent = keys.filter(k => isToday(k.created_at)).length;
+    // 更新统计（用全部卡密统计，不是筛选后的）
+    document.getElementById('statTotal').textContent = allKeys.length;
+    document.getElementById('statToday').textContent = allKeys.filter(k => isToday(k.last_used_at)).length;
+    document.getElementById('statNew').textContent = allKeys.filter(k => isToday(k.created_at)).length;
     const tbody = document.getElementById('keyTable');
     tbody.innerHTML = '';
     keys.forEach(k => {
+      const cat = k.category || 'mine';
+      const catText = cat === 'batch' ? '批量' : '我的';
+      const catBadge = cat === 'batch' ? 'background:#e0e7ff;color:#4338ca;' : 'background:#f0fdf4;color:#166534;';
       let status, badge, remaining = '-';
       if (k.is_revoked) { status = '已停用'; badge = 'badge-revoked'; }
       else if (!k.device_id) { status = '未使用'; badge = 'badge-unused'; }
@@ -437,6 +476,7 @@ async function loadKeys() {
       tbody.innerHTML += `<tr data-key="${k.key}">
         <td><span class="drag-handle">⠿</span> <input type="checkbox" class="key-checkbox" value="${k.key}"></td>
         <td class="key-text">${k.key}</td>
+        <td><span style="padding:2px 8px;border-radius:4px;font-size:12px;${catBadge}">${catText}</span></td>
         <td><span class="dot-today ${usedToday ? 'dot-used' : 'dot-unused'}"></span>${usedToday ? '已使用' : '未使用'}</td>
         <td><span class="dur-text">${durText}</span></td>
         <td><span class="badge ${badge}">${status}</span></td>
@@ -526,11 +566,11 @@ async function revokeKey(key) {
 }
 
 async function reactivateKey(key) {
-  if (!confirm('恢复 ' + key + ' ? 将清除设备绑定和激活时间')) return;
+  if (!confirm('恢复 ' + key + ' ? 将清除设备绑定、激活时间和使用记录')) return;
   await fetch(`${API}/admin/keys/${encodeURIComponent(key)}`, {
     method: 'PATCH',
     headers: authHeaders(),
-    body: JSON.stringify({ is_revoked: false, device_id: '', activated_at: 0 })
+    body: JSON.stringify({ is_revoked: false, device_id: '', activated_at: 0, last_used_at: 0 })
   });
   loadKeys();
 }
@@ -597,10 +637,10 @@ async function batchRevoke() {
 async function batchReactivate() {
   const keys = getCheckedKeys();
   if (!keys.length) return alert('请先勾选');
-  if (!confirm('确定恢复选中的 ' + keys.length + ' 条卡密？（会清除设备绑定和激活时间）')) return;
+  if (!confirm('确定恢复选中的 ' + keys.length + ' 条卡密？（会清除设备绑定、激活时间和使用记录）')) return;
   try {
     for (const key of keys) {
-      await fetch(`${API}/admin/keys/${encodeURIComponent(key)}`, { method:'PATCH', headers:authHeaders(), body: JSON.stringify({ is_revoked: false, device_id: '', activated_at: 0 }) });
+      await fetch(`${API}/admin/keys/${encodeURIComponent(key)}`, { method:'PATCH', headers:authHeaders(), body: JSON.stringify({ is_revoked: false, device_id: '', activated_at: 0, last_used_at: 0 }) });
     }
   } catch (e) {
     alert('网络错误：' + e.message);
