@@ -126,8 +126,8 @@ th { color:var(--muted); font-weight:500; white-space:nowrap; }
     <div style="margin-bottom:10px;display:flex;gap:8px;align-items:center;font-size:13px;">
       <span style="color:#666;">筛选：</span>
       <button id="filter-all" onclick="setCategoryFilter('all')" style="padding:4px 12px;border:1px solid #3b82f6;background:#3b82f6;color:#fff;border-radius:4px;cursor:pointer;">全部</button>
-      <button id="filter-batch" onclick="setCategoryFilter('batch')" style="padding:4px 12px;border:1px solid #ddd;background:#fff;color:#333;border-radius:4px;cursor:pointer;">批量卡密</button>
-      <button id="filter-mine" onclick="setCategoryFilter('mine')" style="padding:4px 12px;border:1px solid #ddd;background:#fff;color:#333;border-radius:4px;cursor:pointer;">我的卡密</button>
+      <button id="filter-batch" onclick="setCategoryFilter('batch')" style="padding:4px 12px;border:1px solid #e5e7eb;background:#f9fafb;color:#666;border-radius:4px;cursor:pointer;">批量卡密</button>
+      <button id="filter-mine" onclick="setCategoryFilter('mine')" style="padding:4px 12px;border:1px solid #e5e7eb;background:#f9fafb;color:#666;border-radius:4px;cursor:pointer;">我的卡密</button>
     </div>
     <div style="overflow-x:auto;">
     <table>
@@ -155,9 +155,9 @@ function setCategoryFilter(cat) {
       btn.style.color = '#fff';
       btn.style.borderColor = '#3b82f6';
     } else {
-      btn.style.background = '#fff';
-      btn.style.color = '#333';
-      btn.style.borderColor = '#ddd';
+      btn.style.background = '#f9fafb';
+      btn.style.color = '#666';
+      btn.style.borderColor = '#e5e7eb';
     }
   });
   loadKeys();
