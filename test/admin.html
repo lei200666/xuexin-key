@@ -99,7 +99,10 @@ th { color:var(--muted); font-weight:500; white-space:nowrap; }
       </select>
       <input type="number" id="genCount" value="1" min="1" max="100" style="width:70px;padding:8px;border:1px solid #ddd;border-radius:6px;text-align:center;" title="生成数量">
       <select id="genCategory">
-        <option value="batch">批量卡密</option>
+        <option value="batch1">第1批</option>
+        <option value="batch2">第2批</option>
+        <option value="batch3">第3批</option>
+        <option value="batch4">第4批</option>
         <option value="mine" selected>我的卡密</option>
       </select>
       <div style="flex:1;min-width:200px;display:flex;gap:4px;align-items:center;">
@@ -124,10 +127,13 @@ th { color:var(--muted); font-weight:500; white-space:nowrap; }
       <button onclick="document.getElementById('importFile').click()" style="float:right;padding:6px 14px;background:#f59e0b;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">导入卡密</button>
       <input type="file" id="importFile" accept=".json,application/json" style="display:none;" onchange="importKeys(this)">
     </h3>
-    <div style="margin-bottom:10px;display:flex;gap:8px;align-items:center;font-size:13px;">
+    <div style="margin-bottom:10px;display:flex;gap:8px;align-items:center;font-size:13px;flex-wrap:wrap;">
       <span style="color:#666;">筛选：</span>
       <button id="filter-all" onclick="setCategoryFilter('all')" style="padding:4px 12px;border:1px solid #3b82f6;background:#3b82f6;color:#fff;border-radius:4px;cursor:pointer;">全部</button>
-      <button id="filter-batch" onclick="setCategoryFilter('batch')" style="padding:4px 12px;border:1px solid #bfdbfe;background:#eff6ff;color:#1e40af;border-radius:4px;cursor:pointer;">批量卡密</button>
+      <button id="filter-batch1" onclick="setCategoryFilter('batch1')" style="padding:4px 12px;border:1px solid #bfdbfe;background:#eff6ff;color:#1e40af;border-radius:4px;cursor:pointer;">第1批</button>
+      <button id="filter-batch2" onclick="setCategoryFilter('batch2')" style="padding:4px 12px;border:1px solid #bfdbfe;background:#eff6ff;color:#1e40af;border-radius:4px;cursor:pointer;">第2批</button>
+      <button id="filter-batch3" onclick="setCategoryFilter('batch3')" style="padding:4px 12px;border:1px solid #bfdbfe;background:#eff6ff;color:#1e40af;border-radius:4px;cursor:pointer;">第3批</button>
+      <button id="filter-batch4" onclick="setCategoryFilter('batch4')" style="padding:4px 12px;border:1px solid #bfdbfe;background:#eff6ff;color:#1e40af;border-radius:4px;cursor:pointer;">第4批</button>
       <button id="filter-mine" onclick="setCategoryFilter('mine')" style="padding:4px 12px;border:1px solid #bfdbfe;background:#eff6ff;color:#1e40af;border-radius:4px;cursor:pointer;">我的卡密</button>
     </div>
     <div style="overflow-x:auto;">
@@ -148,7 +154,7 @@ let categoryFilter = 'all';
 function setCategoryFilter(cat) {
   categoryFilter = cat;
   // 更新按钮样式
-  ['all', 'batch', 'mine'].forEach(c => {
+  ['all', 'batch1', 'batch2', 'batch3', 'batch4', 'mine'].forEach(c => {
     const btn = document.getElementById('filter-' + c);
     if (!btn) return;
     if (c === cat) {
@@ -162,6 +168,13 @@ function setCategoryFilter(cat) {
     }
   });
   loadKeys();
+}
+
+function getNormalizedCategory(k) {
+  const cat = k.category || 'mine';
+  // 旧的 'batch' 归到 batch1
+  if (cat === 'batch') return 'batch1';
+  return cat;
 }
 
 function authHeaders() {
@@ -431,7 +444,7 @@ async function loadKeys() {
     }
     const allKeys = data.keys || [];
     // 按类别筛选
-    const keys = categoryFilter === 'all' ? allKeys : allKeys.filter(k => (k.category || 'mine') === categoryFilter);
+    const keys = categoryFilter === 'all' ? allKeys : allKeys.filter(k => getNormalizedCategory(k) === categoryFilter);
     document.getElementById('keyCount').textContent = keys.length;
     // 更新统计（用全部卡密统计，不是筛选后的）
     document.getElementById('statTotal').textContent = allKeys.length;

@@ -331,8 +331,12 @@ class Handler(BaseHTTPRequestHandler):
         count = int(data.get('count', 1) or 1)
         count = max(1, min(count, 100))
         category = data.get('category', 'mine')
-        if category not in ('batch', 'mine'):
-            category = 'mine'
+        if category not in ('batch1', 'batch2', 'batch3', 'batch4', 'mine'):
+            # 旧的 'batch' 统一归到 batch1
+            if category == 'batch':
+                category = 'batch1'
+            else:
+                category = 'mine'
         custom_key = data.get('key', '').strip().upper()
         # 自定义卡密只允许单张；多张时忽略自定义
         if count > 1 and custom_key:
