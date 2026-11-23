@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>卡密管理后台</title>
+<style>
+:root {
+  --bg: #05070f;
+  --panel: rgba(18, 28, 48, 0.62);
+  --border: rgba(0, 229, 255, 0.22);
+  --neon: #00e5ff;
+  --green: #26b887;
+  --text: #dbe6f5;
+  --muted: #7a8aa0;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background:
+    radial-gradient(1100px 700px at 15% -10%, rgba(0,229,255,.16), transparent 55%),
+    radial-gradient(900px 650px at 100% 0%, rgba(38,184,135,.16), transparent 50%),
+    linear-gradient(rgba(0,229,255,.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,.05) 1px, transparent 1px),
+    var(--bg);
+  background-size: auto, auto, 42px 42px, 42px 42px, auto;
+  color: var(--text);
+  padding:20px;
+  min-height:100vh;
+}
+.login-box { max-width:400px; margin:80px auto; background:var(--panel); backdrop-filter:blur(14px); border:1px solid var(--border); border-radius:16px; padding:32px; box-shadow:0 0 34px rgba(0,229,255,.10); }
+.login-box h2 { text-align:center; margin-bottom:20px; font-size:20px; color:#eaf6ff; }
+.login-box input { width:100%; padding:12px; border:1.5px solid var(--border); border-radius:8px; font-size:15px; margin-bottom:12px; background:rgba(0,0,0,.2); color:var(--text); }
+.login-box button { width:100%; padding:12px; background:var(--neon); color:#000; border:none; border-radius:8px; font-size:15px; cursor:pointer; font-weight:600; }
+.login-box .err { color:#ff7a6a; font-size:13px; text-align:center; }
+.admin-panel { max-width:1100px; margin:0 auto; display:none; }
+.admin-panel h1 { font-size:22px; margin-bottom:20px; color:#eaf6ff; }
+.card { background:var(--panel); backdrop-filter:blur(14px); border:1px solid var(--border); border-radius:16px; padding:20px; margin-bottom:16px; box-shadow:0 0 34px rgba(0,229,255,.10); }
+.card h3 { font-size:16px; margin-bottom:14px; color:#eaf6ff; }
+.gen-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+.gen-row select, .gen-row input { padding:10px 12px; border:1.5px solid var(--border); border-radius:8px; font-size:14px; background:rgba(0,0,0,.2); color:var(--text); }
+.gen-row button { padding:10px 20px; background:var(--green); color:#fff; border:none; border-radius:8px; font-size:14px; cursor:pointer; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th, td { padding:10px 6px; text-align:left; border-bottom:1px solid rgba(255,255,255,.06); vertical-align:middle; }
+th { color:var(--muted); font-weight:500; white-space:nowrap; }
+.badge { padding:2px 8px; border-radius:10px; font-size:11px; }
+.badge-active { background:rgba(38,184,135,.18); color:#39ff88; }
+.badge-expired { background:rgba(231,76,60,.16); color:#ff7a6a; }
+.badge-revoked { background:rgba(120,130,150,.16); color:#9aa4b5; }
+.badge-unused { background:rgba(245,124,0,.16); color:#ffb74d; }
+.btn { padding:4px 8px; border:none; border-radius:5px; font-size:12px; cursor:pointer; margin:1px; }
+.btn-revoke { background:#e74c3c; color:#fff; }
+.btn-reactivate { background:#3b82f6; color:#fff; }
+.btn-copy { background:rgba(38,184,135,.18); color:#39ff88; border:1px solid var(--green); }
+.key-text { font-family:monospace; font-size:12px; }
+.remaining { font-size:11px; color:var(--muted); }
+.dur-adjust { display:flex; gap:4px; align-items:center; }
+.dur-adjust input { width:60px; padding:4px; border:1px solid var(--border); border-radius:4px; font-size:12px; text-align:center; background:rgba(0,0,0,.2); color:var(--text); }
+.dur-adjust button { padding:4px 8px; font-size:11px; border:none; border-radius:4px; cursor:pointer; }
+.note-input { width:100%; padding:4px 6px; border:1px solid var(--border); border-radius:4px; font-size:12px; background:rgba(0,0,0,.2); color:var(--text); }
+.dur-text { font-size:12px; color:var(--text); }
+.copy-toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:8px 20px; border-radius:8px; font-size:14px; display:none; }
+.dot-today { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; }
+.dot-used { background:#39ff88; box-shadow:0 0 8px #39ff88; }
+.dot-unused { background:#4a5568; }
+.drag-handle { cursor:grab; color:var(--muted); font-size:16px; }
+.stat-row { display:flex; gap:16px; flex-wrap:wrap; margin-bottom:16px; }
+.stat-card { flex:1; min-width:120px; background:var(--panel); backdrop-filter:blur(14px); border:1px solid var(--border); border-radius:12px; padding:14px; }
+.stat-label { color:var(--muted); font-size:12px; margin-bottom:4px; }
+.stat-value { font-size:26px; font-weight:600; }
+.usage-detail td { background:rgba(0,229,255,.05); }
+</style>
+</head>
+<body>
+<div id="loginView" class="login-box">
+  <h2>卡密管理后台</h2>
+  <input type="email" id="adminEmail" placeholder="管理员邮箱">
+  <input type="password" id="adminPwd" placeholder="请输入密码">
+  <button onclick="login()">登录</button>
+  <p class="err" id="loginErr"></p>
+</div>
+<div id="adminView" class="admin-panel">
+  <h1>卡密管理 <button onclick="logout()" style="float:right;font-size:13px;padding:6px 16px;background:#999;">退出</button></h1>
+  <div class="stat-row">
+    <div class="stat-card"><div class="stat-label">今日使用人数</div><div class="stat-value" id="statToday" style="color:#39ff88;">0</div></div>
+    <div class="stat-card"><div class="stat-label">总卡密数</div><div class="stat-value" id="statTotal">0</div></div>
+    <div class="stat-card"><div class="stat-label">今日新增</div><div class="stat-value" id="statNew" style="color:var(--neon);">0</div></div>
+  </div>
+  <div class="card">
+    <h3>生成新卡密</h3>
+    <div class="gen-row">
+      <select id="durSelect">
+        <option value="-1">永久</option>
+        <option value="1">1小时</option>
+        <option value="5" selected>5小时</option>
+        <option value="24">24小时</option>
+        <option value="72">3天</option>
+        <option value="168">7天</option>
+      </select>
+      <input type="number" id="genCount" value="1" min="1" max="100" style="width:70px;padding:8px;border:1px solid #ddd;border-radius:6px;text-align:center;" title="生成数量">
+      <select id="genCategory">
+        <option value="batch1">第1批</option>
+        <option value="batch2">第2批</option>
+        <option value="batch3">第3批</option>
+        <option value="batch4">第4批</option>
+        <option value="mine" selected>我的卡密</option>
+      </select>
+      <div style="flex:1;min-width:200px;display:flex;gap:4px;align-items:center;">
+        <input id="key1" maxlength="4" placeholder="XXXX" autocomplete="off" style="width:60px;text-align:center;text-transform:uppercase;">
+        <span style="color:#999;">-</span>
+        <input id="key2" maxlength="4" placeholder="XXXX" autocomplete="off" style="width:60px;text-align:center;text-transform:uppercase;">
+        <span style="color:#999;">-</span>
+        <input id="key3" maxlength="4" placeholder="XXXX" autocomplete="off" style="width:60px;text-align:center;text-transform:uppercase;">
+      </div>
+      <button onclick="genKey()">生成卡密</button>
+      <span id="genResult" style="font-size:14px;color:#26b887;"></span>
+    </div>
+  </div>
+  <div class="card">
+    <h3>卡密列表 (<span id="keyCount">0</span>)
+      <button onclick="loadKeys()" style="float:right;padding:6px 14px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">刷新</button>
+      <button onclick="batchDelete()" style="float:right;padding:6px 14px;background:#7f1d1d;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">批量删除选中</button>
+      <button onclick="batchRevoke()" style="float:right;padding:6px 14px;background:#e74c3c;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">批量停用</button>
+      <button onclick="batchReactivate()" style="float:right;padding:6px 14px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">批量恢复</button>
+      <button onclick="batchCopyKeys()" style="float:right;padding:6px 14px;background:#8b5cf6;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">批量复制</button>
+      <button onclick="exportKeys()" style="float:right;padding:6px 14px;background:#26b887;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">导出卡密</button>
+      <button onclick="document.getElementById('importFile').click()" style="float:right;padding:6px 14px;background:#f59e0b;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">导入卡密</button>
+      <input type="file" id="importFile" accept=".json,application/json" style="display:none;" onchange="importKeys(this)">
+    </h3>
+    <div style="margin-bottom:10px;display:flex;gap:8px;align-items:center;font-size:13px;flex-wrap:wrap;">
+      <span style="color:#666;">筛选：</span>
+      <button id="filter-all" onclick="setCategoryFilter('all')" style="padding:4px 12px;border:1px solid #3b82f6;background:#3b82f6;color:#fff;border-radius:4px;cursor:pointer;">全部</button>
+      <button id="filter-batch1" onclick="setCategoryFilter('batch1')" style="padding:4px 12px;border:1px solid #bfdbfe;background:#eff6ff;color:#1e40af;border-radius:4px;cursor:pointer;">第1批</button>
+      <button id="filter-batch2" onclick="setCategoryFilter('batch2')" style="padding:4px 12px;border:1px solid #bfdbfe;background:#eff6ff;color:#1e40af;border-radius:4px;cursor:pointer;">第2批</button>
+      <button id="filter-batch3" onclick="setCategoryFilter('batch3')" style="padding:4px 12px;border:1px solid #bfdbfe;background:#eff6ff;color:#1e40af;border-radius:4px;cursor:pointer;">第3批</button>
+      <button id="filter-batch4" onclick="setCategoryFilter('batch4')" style="padding:4px 12px;border:1px solid #bfdbfe;background:#eff6ff;color:#1e40af;border-radius:4px;cursor:pointer;">第4批</button>
+      <button id="filter-mine" onclick="setCategoryFilter('mine')" style="padding:4px 12px;border:1px solid #bfdbfe;background:#eff6ff;color:#1e40af;border-radius:4px;cursor:pointer;">我的卡密</button>
+    </div>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead><tr><th><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"></th><th>卡密</th><th>今天使用</th><th>时长</th><th>状态</th><th>剩余</th><th>最后使用</th><th>调时长</th><th>备注</th><th>操作</th></tr></thead>
+      <tbody id="keyTable"></tbody>
+    </table>
+    </div>
+  </div>
+</div>
+<div class="copy-toast" id="copyToast">已复制</div>
+<script src="https://cdn.bootcdn.net/ajax/libs/Sortable/1.15.0/Sortable.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js'"></script>
+<script>
+const API = 'https://xuexin-web-nhjqyrudaq.cn-hangzhou.fcapp.run';
+let authToken = localStorage.getItem('admin_token') || '';
+let categoryFilter = 'all';
+
+function setCategoryFilter(cat) {
+  categoryFilter = cat;
+  // 更新按钮样式
+  ['all', 'batch1', 'batch2', 'batch3', 'batch4', 'mine'].forEach(c => {
+    const btn = document.getElementById('filter-' + c);
+    if (!btn) return;
+    if (c === cat) {
+      btn.style.background = '#3b82f6';
+      btn.style.color = '#fff';
+      btn.style.borderColor = '#3b82f6';
+    } else {
+      btn.style.background = '#eff6ff';
+      btn.style.color = '#1e40af';
+      btn.style.borderColor = '#bfdbfe';
+    }
+  });
+  loadKeys();
+}
+
+function getNormalizedCategory(k) {
+  const cat = k.category || 'mine';
+  // 旧的 'batch' 归到 batch1
+  if (cat === 'batch') return 'batch1';
+  return cat;
+}
+
+function authHeaders() {
+  return {
+    'Authorization': 'Bearer ' + authToken,
+    'Content-Type': 'application/json'
+  };
+}
+
+async function login() {
+  const pwd = document.getElementById('adminPwd').value;
+  const errEl = document.getElementById('loginErr');
+  errEl.textContent = '';
+  try {
+    const res = await fetch(`${API}/admin/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ password: pwd })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) {
+      errEl.textContent = '登录失败：' + (data.error || '密码错误');
+      return;
+    }
+    authToken = data.token;
+    localStorage.setItem('admin_token', authToken);
+    document.getElementById('loginView').style.display = 'none';
+    document.getElementById('adminView').style.display = 'block';
+    loadKeys();
+  } catch (e) {
+    errEl.textContent = '网络错误：' + e.message;
+  }
+}
+
+function logout() {
+  if (window._refreshTimer) clearInterval(window._refreshTimer);
+  localStorage.removeItem('admin_token');
+  localStorage.removeItem('admin_email');
+  location.reload();
+}
+
+document.getElementById('adminPwd').addEventListener('keydown', e => { if(e.key==='Enter') login(); });
+document.getElementById('adminEmail').addEventListener('keydown', e => { if(e.key==='Enter') login(); });
+
+// 三段输入自动跳格
+function setupAutoJump() {
+  const k1 = document.getElementById('key1');
+  const k2 = document.getElementById('key2');
+  const k3 = document.getElementById('key3');
+  
+  // 输入满4个字符自动跳到下一个
+  k1.addEventListener('input', () => { if (k1.value.length === 4) k2.focus(); });
+  k2.addEventListener('input', () => { if (k2.value.length === 4) k3.focus(); });
+  
+  // 退格键如果为空自动跳到上一个
+  k2.addEventListener('keydown', e => { if (e.key === 'Backspace' && k2.value === '') k1.focus(); });
+  k3.addEventListener('keydown', e => { if (e.key === 'Backspace' && k3.value === '') k2.focus(); });
+}
+
+// 页面加载时启动自动跳格
+setupAutoJump();
+
+async function genKey() {
+  const dur = parseInt(document.getElementById('durSelect').value);
+  const count = parseInt(document.getElementById('genCount').value) || 1;
+  const category = document.getElementById('genCategory').value;
+  const k1 = document.getElementById('key1').value.trim().toUpperCase();
+  const k2 = document.getElementById('key2').value.trim().toUpperCase();
+  const k3 = document.getElementById('key3').value.trim().toUpperCase();
+  
+  // 拼接成完整 key
+  let customKey = '';
+  if (k1 || k2 || k3) {
+    // 如果有任何一段输入了，就要求三段都填满
+    if (!k1 || !k2 || !k3) {
+      alert('请完整输入三段卡密（每段4个字符），或全部留空自动生成');
+      return;
+    }
+    customKey = k1 + '-' + k2 + '-' + k3;
+  }
+
+  try {
+    const res = await fetch(`${API}/admin/keys`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ duration_hours: dur, key: customKey, count: count, category: category })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) {
+      alert('生成失败：' + (data.error || '未知错误'));
+      return;
+    }
+    const keysArr = data.keys || (data.key ? [data.key] : []);
+    document.getElementById('genResult').textContent = '已生成 ' + keysArr.length + ' 张: ' + (keysArr[0] || '');
+    document.getElementById('key1').value = '';
+    document.getElementById('key2').value = '';
+    document.getElementById('key3').value = '';
+    loadKeys();
+  } catch (e) {
+    alert('网络错误：' + e.message);
+  }
+}
+
+function fmtRemaining(ms) {
+  if (ms <= 0) return '已到期';
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  if (h >= 24) return Math.floor(h/24) + '天' + (h%24) + '时';
+  return h + '时' + m + '分';
+}
+
+// 把后端返回的时间戳统一转成毫秒（兼容秒/毫秒/字符串/Long 对象）
+function toMs(v) {
+    if (v == null || v === '') return 0;
+    if (typeof v === 'object' && typeof v.toNumber === 'function') v = v.toNumber(); // OTS Long 对象
+    v = Number(v);
+    if (!Number.isFinite(v)) return 0;
+    if (v < 1e12) v = v * 1000;   // 10 位是「秒」→ 转毫秒；13 位毫秒则不变
+    return v;
+}
+
+function fmtDateTime(ts) {
+  if (!ts) return '';
+  const d = new Date(toMs(ts));
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
+function getDurText(k) {
+  if (k.duration_hours === -1) return '永久';
+  return k.duration_hours + '小时';
+}
+
+function getStatusText(k) {
+  if (k.is_revoked) return '已停用';
+  if (!k.device_id) return '未使用';
+  if (k.duration_hours !== -1 && k.activated_at) {
+    const expire = toMs(k.activated_at) + k.duration_hours * 3600 * 1000;
+    if (expire <= Date.now()) return '已过期';
+  }
+  return '使用中';
+}
+
+async function exportKeys() {
+  try {
+    const res = await fetch(`${API}/admin/keys`, { headers: authHeaders() });
+    const data = await res.json();
+    if (!res.ok || !data.ok) { alert('导出失败：' + (data.error || '未知错误')); return; }
+    const keys = data.keys || [];
+    const items = keys.map(k => ({
+      '卡密': k.key,
+      '时长': getDurText(k),
+      '状态': getStatusText(k),
+      '绑定设备': k.device_id || '',
+      '激活时间': fmtDateTime(k.activated_at),
+      '创建时间': fmtDateTime(k.created_at),
+      '最后使用': fmtDateTime(k.last_used_at),
+      '备注': k.note || '',
+      '_raw': k
+    }));
+    const payload = {
+      '导出时间': new Date().toISOString(),
+      '数量': keys.length,
+      '卡密列表': items
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const now = new Date();
+    const p = n => String(n).padStart(2, '0');
+    const fname = `卡密备份-${now.getFullYear()}${p(now.getMonth()+1)}${p(now.getDate())}-${p(now.getHours())}${p(now.getMinutes())}${p(now.getSeconds())}.json`;
+    a.download = fname;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    alert('导出失败：' + e.message);
+  }
+}
+
+async function importKeys(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (!confirm('导入会用文件内容覆盖/新增卡密，确定继续？')) { input.value = ''; return; }
+  try {
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    const items = parsed['卡密列表'] || parsed.keys || (Array.isArray(parsed) ? parsed : []);
+    const keys = items.map(item => (item && item._raw) ? item._raw : item).filter(k => k && k.key);
+    if (!keys.length) { alert('文件里没有卡密数据'); input.value = ''; return; }
+    const res = await fetch(`${API}/admin/keys/import`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ keys: keys })
+    });
+    const result = await res.json();
+    if (result && result.ok) { alert('导入成功：' + result.count + ' 条'); loadKeys(); }
+    else { alert('导入失败：' + (result && result.error || '未知错误')); }
+  } catch (e) {
+    alert('导入失败：' + e.message);
+  }
+  input.value = '';
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function copyKey(key) {
+  navigator.clipboard.writeText(key).then(() => {
+    const t = document.getElementById('copyToast');
+    t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 1500);
+  });
+}
+
+function isToday(ts) {
+  if (!ts) return false;
+  const d = new Date(toMs(ts)), t = new Date();
+  return d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth() && d.getDate() === t.getDate();
+}
+
+function fmtTime(ts) {
+  const d = new Date(toMs(ts));
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function initDragSort() {
+  const tbody = document.getElementById('keyTable');
+  if (!tbody) return;
+  if (typeof Sortable === 'undefined') return; // 拖拽库未加载（CDN 失败）时跳过，避免弹窗
+  if (window._sortable) window._sortable.destroy();
+  window._sortable = Sortable.create(tbody, {
+    draggable: 'tr[data-key]',
+    handle: '.drag-handle',
+    onEnd: async () => {
+      const keys = Array.from(tbody.querySelectorAll('tr[data-key]')).map(tr => tr.dataset.key);
+      try {
+        const res = await fetch(`${API}/admin/keys/reorder`, { method:'POST', headers:authHeaders(), body: JSON.stringify({ keys }) });
+        if (!res.ok) alert('排序保存失败');
+      } catch (e) {
+        alert('网络错误：' + e.message);
+      }
+    }
+  });
+}
+
+async function loadKeys() {
+  // 显示加载中
+  const btn = document.querySelector('button[onclick="loadKeys()"]');
+  if (btn) {
+    btn.textContent = '加载中...';
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+  }
+  try {
+    const res = await fetch(`${API}/admin/keys`, {
+      headers: authHeaders()
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) {
+      alert('加载失败：' + (data.error || '未知错误'));
+      return;
+    }
+    const allKeys = data.keys || [];
+    // 按类别筛选
+    const keys = categoryFilter === 'all' ? allKeys : allKeys.filter(k => getNormalizedCategory(k) === categoryFilter);
+    document.getElementById('keyCount').textContent = keys.length;
+    // 更新统计（用全部卡密统计，不是筛选后的）
+    document.getElementById('statTotal').textContent = allKeys.length;
+    document.getElementById('statToday').textContent = allKeys.filter(k => isToday(k.last_used_at)).length;
+    document.getElementById('statNew').textContent = allKeys.filter(k => isToday(k.created_at)).length;
+    const tbody = document.getElementById('keyTable');
+    tbody.innerHTML = '';
+    keys.forEach(k => {
+      const cat = k.category || 'mine';
+      const catText = cat === 'batch' ? '批量' : '我的';
+      const catBadge = cat === 'batch' ? 'background:#e0e7ff;color:#4338ca;' : 'background:#f0fdf4;color:#166534;';
+      let status, badge, remaining = '-';
+      if (k.is_revoked) { status = '已停用'; badge = 'badge-revoked'; }
+      else if (!k.device_id) { status = '未使用'; badge = 'badge-unused'; }
+      else if (k.duration_hours !== -1 && k.activated_at) {
+        const expire = toMs(k.activated_at) + k.duration_hours * 3600 * 1000;
+        const left = expire - Date.now();
+        if (left <= 0) { status = '已过期'; badge = 'badge-expired'; }
+        else { status = '使用中'; badge = 'badge-active'; remaining = fmtRemaining(left); }
+      } else { status = '使用中'; badge = 'badge-active'; remaining = '永久'; }
+      const isPerm = k.duration_hours === -1;
+      const durText = isPerm ? '永久' : k.duration_hours + '小时';
+      const note = k.note || '';
+      let durHtml = '';
+      if (!k.is_revoked && !isPerm && k.device_id) {
+        durHtml = `<div class="dur-adjust">
+          <input type="number" id="hours_${k.key}" placeholder="小时">
+          <button style="background:#26b887;color:#fff" onclick="adjustDur('${k.key}','add')">+</button>
+          <button style="background:#f57c00;color:#fff" onclick="adjustDur('${k.key}','sub')">-</button>
+        </div>`;
+      } else {
+        durHtml = `<span class="dur-text">${durText}</span>`;
+      }
+      let actions = `<button class="btn btn-copy" onclick="copyKey('${k.key}')">复制</button>`;
+      if (!k.is_revoked) {
+        actions += `<button class="btn btn-revoke" onclick="revokeKey('${k.key}')">停用</button>`;
+      } else {
+        actions += `<button class="btn btn-reactivate" onclick="reactivateKey('${k.key}')">恢复</button>`;
+      }
+      actions += `<button class="btn" style="background:#7f1d1d;color:#fff;" onclick="deleteKey('${k.key}')">彻底删除</button>`;
+      const usedToday = isToday(k.last_used_at);
+      const lastUsedText = k.last_used_at ? fmtDateTime(k.last_used_at) : '从未';
+      tbody.innerHTML += `<tr data-key="${k.key}">
+        <td><span class="drag-handle">⠿</span> <input type="checkbox" class="key-checkbox" value="${k.key}"></td>
+        <td class="key-text">${k.key}</td>
+        <td><span class="dot-today ${usedToday ? 'dot-used' : 'dot-unused'}"></span>${usedToday ? '已使用' : '未使用'}</td>
+        <td><span class="dur-text">${durText}</span></td>
+        <td><span class="badge ${badge}">${status}</span></td>
+        <td class="remaining">${remaining}</td>
+        <td class="last-used">${lastUsedText}</td>
+        <td>${durHtml}</td>
+        <td><input class="note-input" id="note_${k.key}" value="${escapeHtml(note)}" placeholder="备注..." onchange="saveNote('${k.key}', this.value)"></td>
+        <td>${actions}</td>
+      </tr>`;
+    });
+    document.getElementById('selectAll').checked = false;
+    initDragSort();
+  } catch (e) {
+    alert('网络错误：' + e.message);
+  } finally {
+    // 恢复刷新按钮
+    const btn = document.querySelector('button[onclick="loadKeys()"]');
+    if (btn) {
+      btn.textContent = '刷新';
+      btn.disabled = false;
+      btn.style.opacity = '1';
+    }
+  }
+}
+
+function startAutoRefresh() {
+    if (window._refreshTimer) clearInterval(window._refreshTimer);
+    window._refreshTimer = setInterval(() => {
+        // 正在编辑（输入框有焦点）时跳过
+        const active = document.activeElement;
+        const editing = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable);
+        if (!editing) {
+            loadKeys();
+        }
+    }, 60000); // 每 60 秒自动刷新一次
+}
+
+async function adjustDur(key, op) {
+  const input = document.getElementById('hours_' + key);
+  const hours = parseFloat(input.value);
+  if (!hours || hours <= 0) { alert('请输入小时数'); return; }
+  const delta = op === 'add' ? hours : -hours;
+  try {
+    // 先获取当前时长
+    const res = await fetch(`${API}/admin/keys`, {
+      headers: authHeaders()
+    });
+    const data = await res.json();
+    if (!data.ok) { alert('加载失败'); return; }
+    const keyData = data.keys.find(k => k.key === key);
+    if (!keyData) { alert('未找到卡密'); return; }
+    let newDur = keyData.duration_hours + delta;
+    if (newDur < 1) newDur = 1;
+    await fetch(`${API}/admin/keys/${encodeURIComponent(key)}`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify({ duration_hours: newDur })
+    });
+    input.value = '';
+    loadKeys();
+  } catch (e) {
+    alert('错误：' + e.message);
+  }
+}
+
+async function saveNote(key, note) {
+  try {
+    const res = await fetch(`${API}/admin/keys/${encodeURIComponent(key)}`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify({ note })
+    });
+    if (!res.ok) alert('备注保存失败');
+  } catch (e) {
+    alert('网络错误：' + e.message);
+  }
+}
+
+async function revokeKey(key) {
+  if (!confirm('确定停用 ' + key + ' ?')) return;
+  await fetch(`${API}/admin/keys/${encodeURIComponent(key)}`, {
+    method: 'PATCH',
+    headers: authHeaders(),
+    body: JSON.stringify({ is_revoked: true })
+  });
+  loadKeys();
+}
+
+async function reactivateKey(key) {
+  if (!confirm('恢复 ' + key + ' ? 将清除设备绑定、激活时间和使用记录')) return;
+  await fetch(`${API}/admin/keys/${encodeURIComponent(key)}`, {
+    method: 'PATCH',
+    headers: authHeaders(),
+    body: JSON.stringify({ is_revoked: false, device_id: '', activated_at: 0, last_used_at: 0 })
+  });
+  loadKeys();
+}
+
+async function deleteKey(key) {
+  if (!confirm('⚠️ 确定彻底删除 ' + key + ' 吗？\n\n删除后无法恢复！')) return;
+  try {
+    const res = await fetch(`${API}/admin/keys/${encodeURIComponent(key)}`, {
+      method: 'DELETE',
+      headers: authHeaders()
+    });
+    const data = await res.json();
+    if (!data.ok) {
+      alert('删除失败：' + (data.error || '未知错误'));
+      return;
+    }
+    loadKeys();
+  } catch (e) {
+    alert('网络错误：' + e.message);
+  }
+}
+
+function toggleSelectAll(checkbox) {
+  document.querySelectorAll('.key-checkbox').forEach(cb => cb.checked = checkbox.checked);
+}
+
+async function batchDelete() {
+  const checked = document.querySelectorAll('.key-checkbox:checked');
+  if (checked.length === 0) { alert('请先勾选要删除的卡密'); return; }
+  if (!confirm('⚠️ 确定彻底删除选中的 ' + checked.length + ' 条卡密吗？\n\n删除后无法恢复！')) return;
+  const keys = Array.from(checked).map(cb => cb.value);
+  try {
+    // 循环删除每个卡密
+    for (const key of keys) {
+      await fetch(`${API}/admin/keys/${encodeURIComponent(key)}`, {
+        method: 'DELETE',
+        headers: authHeaders()
+      });
+    }
+    loadKeys();
+  } catch (e) {
+    alert('网络错误：' + e.message);
+  }
+}
+
+function getCheckedKeys() {
+  return Array.from(document.querySelectorAll('.key-checkbox:checked')).map(cb => cb.value);
+}
+
+async function batchRevoke() {
+  const keys = getCheckedKeys();
+  if (!keys.length) return alert('请先勾选');
+  if (!confirm('确定停用选中的 ' + keys.length + ' 条卡密？')) return;
+  try {
+    for (const key of keys) {
+      await fetch(`${API}/admin/keys/${encodeURIComponent(key)}`, { method:'PATCH', headers:authHeaders(), body: JSON.stringify({ is_revoked: true }) });
+    }
+  } catch (e) {
+    alert('网络错误：' + e.message);
+  }
+  loadKeys();
+}
+
+async function batchCopyKeys() {
+  const keys = getCheckedKeys();
+  if (!keys.length) return alert('请先勾选要复制的卡密');
+  const text = keys.join('\n');
+  try {
+    await navigator.clipboard.writeText(text);
+    alert('已复制 ' + keys.length + ' 张卡密到剪贴板');
+  } catch (e) {
+    // 降级方案
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    alert('已复制 ' + keys.length + ' 张卡密到剪贴板');
+  }
+}
+
+async function batchReactivate() {
+  const keys = getCheckedKeys();
+  if (!keys.length) return alert('请先勾选');
+  if (!confirm('确定恢复选中的 ' + keys.length + ' 条卡密？（会清除设备绑定、激活时间和使用记录）')) return;
+  try {
+    for (const key of keys) {
+      await fetch(`${API}/admin/keys/${encodeURIComponent(key)}`, { method:'PATCH', headers:authHeaders(), body: JSON.stringify({ is_revoked: false, device_id: '', activated_at: 0, last_used_at: 0 }) });
+    }
+  } catch (e) {
+    alert('网络错误：' + e.message);
+  }
+  loadKeys();
+}
+
+// 页面加载时如果有 token 自动登录
+if (authToken) {
+  document.getElementById('loginView').style.display = 'none';
+  document.getElementById('adminView').style.display = 'block';
+  loadKeys();
+}
+</script>
+</body>
+</html>
